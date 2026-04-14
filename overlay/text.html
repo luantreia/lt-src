@@ -38,6 +38,21 @@
       background: transparent;
     }
 
+    .preset-background {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+    }
+
+    .preset-background.visible {
+      opacity: 1;
+    }
+
     .lower-third {
       position: absolute;
       left: var(--zocalo-left);
@@ -280,6 +295,8 @@
 </head>
 <body>
   <div class="stage">
+    <img id="presetBackground" class="preset-background" alt="Preset background">
+
     <div id="titleStrap" class="title-strap">
       <div id="titleKicker" class="title-kicker">TITULO</div>
       <div id="titleText" class="title-text">Titulo principal</div>
@@ -314,6 +331,7 @@
     const wsBase = (params.get('wsBase') || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`).replace(/\/$/, '');
     const HTTP_URL = `${apiBase}/state`;
     const WS_URL = wsBase;
+    const presetBackground = document.getElementById('presetBackground');
     const lowerThird = document.getElementById('lowerThird');
     const titleStrap = document.getElementById('titleStrap');
     const titleKickerNode = document.getElementById('titleKicker');
@@ -328,8 +346,41 @@
       zocalo: { nombre: '', partido: '', rol: '' },
       title: { kicker: '', text: '' },
       quote: { speaker: '', text: '' },
-      visibility: { text: true, zocalo: true, title: false, quote: false }
+      visibility: { text: true, zocalo: true, title: false, quote: false },
+      images: [],
+      activeTextPreset: null
     };
+
+    function getPresetElement(layer) {
+      return state.activeTextPreset && state.activeTextPreset.elements
+        ? state.activeTextPreset.elements[layer] || null
+        : null;
+    }
+
+    function applyPresetPosition(node, presetElement) {
+      if (!presetElement) {
+        node.style.left = '';
+        node.style.top = '';
+        node.style.right = '';
+        node.style.bottom = '';
+        return;
+      }
+
+      node.style.left = `${presetElement.x}px`;
+      node.style.top = `${presetElement.y}px`;
+      node.style.right = 'auto';
+      node.style.bottom = 'auto';
+    }
+
+    function isLayerEnabled(layer) {
+      const presetElement = getPresetElement(layer);
+
+      if (!presetElement) {
+        return true;
+      }
+
+      return Boolean(presetElement.enabled);
+    }
 
     function render() {
       if (!state || !state.zocalo) {
@@ -344,12 +395,33 @@
       quoteTextNode.textContent = state.quote.text || '';
       quoteSpeakerNode.textContent = state.quote.speaker || '';
 
+      applyPresetPosition(lowerThird, getPresetElement('zocalo'));
+      applyPresetPosition(titleStrap, getPresetElement('title'));
+      applyPresetPosition(quoteCard, getPresetElement('quote'));
+
       const hasContent = Boolean(state.zocalo.nombre || state.zocalo.partido || state.zocalo.rol);
       const hasTitle = Boolean(state.title.kicker || state.title.text);
       const hasQuote = Boolean(state.quote.text || state.quote.speaker);
-      lowerThird.classList.toggle('visible', Boolean(state.visibility && state.visibility.text && state.visibility.zocalo && hasContent));
-      titleStrap.classList.toggle('visible', Boolean(state.visibility && state.visibility.text && state.visibility.title && hasTitle));
-      quoteCard.classList.toggle('visible', Boolean(state.visibility && state.visibility.text && state.visibility.quote && hasQuote));
+      const lowerThirdVisible = Boolean(state.visibility && state.visibility.text && state.visibility.zocalo && isLayerEnabled('zocalo') && hasContent);
+      const titleVisible = Boolean(state.visibility && state.visibility.text && state.visibility.title && isLayerEnabled('title') && hasTitle);
+      const quoteVisible = Boolean(state.visibility && state.visibility.text && state.visibility.quote && isLayerEnabled('quote') && hasQuote);
+      lowerThird.classList.toggle('visible', lowerThirdVisible);
+      titleStrap.classList.toggle('visible', titleVisible);
+      quoteCard.classList.toggle('visible', quoteVisible);
+
+      const backgroundImageId = state.activeTextPreset?.backgroundImageId || null;
+      const backgroundImage = backgroundImageId
+        ? state.images.find((image) => image.id === backgroundImageId) || null
+        : null;
+      const backgroundVisible = Boolean(state.visibility && state.visibility.text && backgroundImage && (lowerThirdVisible || titleVisible || quoteVisible));
+
+      if (backgroundImage && backgroundImage.url) {
+        presetBackground.src = backgroundImage.url;
+      } else {
+        presetBackground.removeAttribute('src');
+      }
+
+      presetBackground.classList.toggle('visible', backgroundVisible);
     }
 
     async function loadInitialState() {
@@ -360,6 +432,8 @@
         state.title = payload.title || state.title;
         state.quote = payload.quote || state.quote;
         state.visibility = payload.visibility || state.visibility;
+        state.images = payload.images || state.images;
+        state.activeTextPreset = payload.activeTextPreset || null;
         render();
       } catch (error) {
         console.error('Unable to load initial state', error);
@@ -377,6 +451,8 @@
           state.title = message.payload.title || state.title;
           state.quote = message.payload.quote || state.quote;
           state.visibility = message.payload.visibility || state.visibility;
+          state.images = message.payload.images || state.images;
+          state.activeTextPreset = message.payload.activeTextPreset || null;
           render();
         }
 
@@ -402,6 +478,20 @@
 
         if (message.type === 'TEXT_LAYER_VISIBILITY') {
           state.visibility[message.payload.layer] = Boolean(message.payload.visible);
+          render();
+        }
+
+        if (message.type === 'PRESET_ACTIVATE') {
+          state.activeTextPreset = message.payload.activeTextPreset || null;
+          state.zocalo = message.payload.zocalo || state.zocalo;
+          state.title = message.payload.title || state.title;
+          state.quote = message.payload.quote || state.quote;
+          state.visibility = message.payload.visibility || state.visibility;
+          render();
+        }
+
+        if (message.type === 'PRESET_CLEAR') {
+          state.activeTextPreset = null;
           render();
         }
       });

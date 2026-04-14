@@ -17,8 +17,14 @@ const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || process.env.RENDER_EXTER
 const uploadsDir = path.join(dataDir, 'uploads');
 const overlayDir = path.resolve(__dirname, '../overlay');
 const imageMetadataPath = path.join(dataDir, 'image-metadata.json');
+const textPresetsPath = path.join(dataDir, 'text-presets.json');
 const OBS_IMAGE_WIDTH = 1920;
 const OBS_IMAGE_HEIGHT = 1080;
+const IMAGE_MIN_SCALE = 1;
+const IMAGE_MAX_SCALE = 4;
+const IMAGE_MAX_OFFSET_X = OBS_IMAGE_WIDTH;
+const IMAGE_MAX_OFFSET_Y = OBS_IMAGE_HEIGHT;
+const textLayers = ['zocalo', 'title', 'quote'];
 
 const app = express();
 
@@ -80,6 +86,148 @@ const normalizeTags = (tags) => {
         .filter(Boolean)
     )
   ).slice(0, 12);
+};
+
+const clampNumber = (value, min, max, fallback) => {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, parsedValue));
+};
+
+const createDefaultImageTransform = () => ({
+  scale: 1,
+  x: 0,
+  y: 0
+});
+
+const normalizeImageTransform = (value) => ({
+  scale: clampNumber(value?.scale, IMAGE_MIN_SCALE, IMAGE_MAX_SCALE, 1),
+  x: clampNumber(value?.x, -IMAGE_MAX_OFFSET_X, IMAGE_MAX_OFFSET_X, 0),
+  y: clampNumber(value?.y, -IMAGE_MAX_OFFSET_Y, IMAGE_MAX_OFFSET_Y, 0)
+});
+
+const sanitizeZocalo = (value) => ({
+  nombre: String(value?.nombre || ''),
+  partido: String(value?.partido || ''),
+  rol: String(value?.rol || '')
+});
+
+const sanitizeTitle = (value) => ({
+  kicker: String(value?.kicker || ''),
+  text: String(value?.text || '')
+});
+
+const sanitizeQuote = (value) => ({
+  speaker: String(value?.speaker || ''),
+  text: String(value?.text || '')
+});
+
+const createDefaultPresetElements = () => ({
+  zocalo: {
+    enabled: true,
+    x: 64,
+    y: 860,
+    content: sanitizeZocalo({
+      nombre: 'DON MANOLO',
+      partido: 'PARTIDO POR LA PAZ',
+      rol: 'CANDIDATO PRESIDENCIAL'
+    })
+  },
+  title: {
+    enabled: false,
+    x: 64,
+    y: 96,
+    content: sanitizeTitle({
+      kicker: 'TITULO',
+      text: ''
+    })
+  },
+  quote: {
+    enabled: false,
+    x: 1296,
+    y: 760,
+    content: sanitizeQuote({
+      speaker: '',
+      text: ''
+    })
+  }
+});
+
+const clonePresetElements = (elements = createDefaultPresetElements()) => ({
+  zocalo: {
+    ...elements.zocalo,
+    content: sanitizeZocalo(elements.zocalo?.content)
+  },
+  title: {
+    ...elements.title,
+    content: sanitizeTitle(elements.title?.content)
+  },
+  quote: {
+    ...elements.quote,
+    content: sanitizeQuote(elements.quote?.content)
+  }
+});
+
+const normalizePresetElements = (elements, fallbackElements = createDefaultPresetElements()) => ({
+  zocalo: {
+    enabled: typeof elements?.zocalo?.enabled === 'boolean' ? elements.zocalo.enabled : Boolean(fallbackElements.zocalo.enabled),
+    x: clampNumber(elements?.zocalo?.x, 0, OBS_IMAGE_WIDTH, fallbackElements.zocalo.x),
+    y: clampNumber(elements?.zocalo?.y, 0, OBS_IMAGE_HEIGHT, fallbackElements.zocalo.y),
+    content: sanitizeZocalo(elements?.zocalo?.content ?? fallbackElements.zocalo.content)
+  },
+  title: {
+    enabled: typeof elements?.title?.enabled === 'boolean' ? elements.title.enabled : Boolean(fallbackElements.title.enabled),
+    x: clampNumber(elements?.title?.x, 0, OBS_IMAGE_WIDTH, fallbackElements.title.x),
+    y: clampNumber(elements?.title?.y, 0, OBS_IMAGE_HEIGHT, fallbackElements.title.y),
+    content: sanitizeTitle(elements?.title?.content ?? fallbackElements.title.content)
+  },
+  quote: {
+    enabled: typeof elements?.quote?.enabled === 'boolean' ? elements.quote.enabled : Boolean(fallbackElements.quote.enabled),
+    x: clampNumber(elements?.quote?.x, 0, OBS_IMAGE_WIDTH, fallbackElements.quote.x),
+    y: clampNumber(elements?.quote?.y, 0, OBS_IMAGE_HEIGHT, fallbackElements.quote.y),
+    content: sanitizeQuote(elements?.quote?.content ?? fallbackElements.quote.content)
+  }
+});
+
+const createPresetId = () => `preset-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+
+const normalizePresetRecord = (preset) => {
+  const now = Date.now();
+  const fallbackElements = createDefaultPresetElements();
+
+  return {
+    id: String(preset?.id || createPresetId()),
+    name: String(preset?.name || 'Nuevo preset').trim() || 'Nuevo preset',
+    backgroundImageId: preset?.backgroundImageId ? String(preset.backgroundImageId) : null,
+    elements: normalizePresetElements(preset?.elements, fallbackElements),
+    createdAt: clampNumber(preset?.createdAt, 0, Number.MAX_SAFE_INTEGER, now),
+    updatedAt: clampNumber(preset?.updatedAt, 0, Number.MAX_SAFE_INTEGER, now)
+  };
+};
+
+const readTextPresets = () => {
+  if (!fs.existsSync(textPresetsPath)) {
+    return [];
+  }
+
+  try {
+    const payload = JSON.parse(fs.readFileSync(textPresetsPath, 'utf8'));
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    return payload.map(normalizePresetRecord);
+  } catch {
+    return [];
+  }
+};
+
+const writeTextPresets = (presets) => {
+  fs.writeFileSync(textPresetsPath, JSON.stringify(presets, null, 2));
 };
 
 const getImageMeta = (filename) => ({
@@ -172,6 +320,8 @@ const loadExistingImages = () => {
 
 await normalizeExistingUploads();
 
+const savedPresets = readTextPresets();
+
 const state = {
   zocalo: {
     nombre: 'DON MANOLO',
@@ -195,6 +345,9 @@ const state = {
   },
   images: loadExistingImages(),
   selectedImageId: null,
+  imageTransforms: {},
+  presets: savedPresets,
+  activeTextPreset: null,
   updatedAt: Date.now()
 };
 
@@ -219,6 +372,9 @@ const upload = multer({
 
 const serializeState = () => {
   const selectedImage = state.images.find((image) => image.id === state.selectedImageId) || null;
+  const selectedImageTransform = selectedImage
+    ? normalizeImageTransform(state.imageTransforms[selectedImage.id] || createDefaultImageTransform())
+    : createDefaultImageTransform();
 
   return {
     zocalo: state.zocalo,
@@ -227,6 +383,9 @@ const serializeState = () => {
     visibility: state.visibility,
     images: state.images,
     selectedImage,
+    selectedImageTransform,
+    presets: state.presets,
+    activeTextPreset: state.activeTextPreset,
     updatedAt: state.updatedAt
   };
 };
@@ -265,11 +424,116 @@ const touchState = () => {
   state.updatedAt = Date.now();
 };
 
+const getSelectedImageTransform = () => {
+  if (!state.selectedImageId) {
+    return createDefaultImageTransform();
+  }
+
+  if (!state.imageTransforms[state.selectedImageId]) {
+    state.imageTransforms[state.selectedImageId] = createDefaultImageTransform();
+  }
+
+  return normalizeImageTransform(state.imageTransforms[state.selectedImageId]);
+};
+
+const setSelectedImageTransform = (transform) => {
+  if (!state.selectedImageId) {
+    return createDefaultImageTransform();
+  }
+
+  const normalizedTransform = normalizeImageTransform(transform);
+  state.imageTransforms[state.selectedImageId] = normalizedTransform;
+  return normalizedTransform;
+};
+
+const applyPresetToState = (presetRuntime) => {
+  state.activeTextPreset = {
+    presetId: presetRuntime.presetId || presetRuntime.id || null,
+    name: String(presetRuntime.name || 'Preset activo'),
+    backgroundImageId: presetRuntime.backgroundImageId || null,
+    elements: clonePresetElements(presetRuntime.elements)
+  };
+  state.zocalo = sanitizeZocalo(state.activeTextPreset.elements.zocalo.content);
+  state.title = sanitizeTitle(state.activeTextPreset.elements.title.content);
+  state.quote = sanitizeQuote(state.activeTextPreset.elements.quote.content);
+  state.visibility.zocalo = Boolean(state.activeTextPreset.elements.zocalo.enabled);
+  state.visibility.title = Boolean(state.activeTextPreset.elements.title.enabled);
+  state.visibility.quote = Boolean(state.activeTextPreset.elements.quote.enabled);
+};
+
+const syncActivePresetContent = (layer, content) => {
+  if (!state.activeTextPreset?.elements?.[layer]) {
+    return;
+  }
+
+  state.activeTextPreset.elements[layer].content = content;
+};
+
+const syncActivePresetVisibility = (layer, visible) => {
+  if (!state.activeTextPreset?.elements?.[layer]) {
+    return;
+  }
+
+  state.activeTextPreset.elements[layer].enabled = Boolean(visible);
+};
+
+const createRuntimePresetFromRecord = (presetRecord, overrides = {}) => {
+  const fallbackElements = clonePresetElements(presetRecord.elements);
+  const overrideElements = {
+    zocalo: {
+      enabled: overrides.elements?.zocalo?.enabled,
+      x: overrides.elements?.zocalo?.x,
+      y: overrides.elements?.zocalo?.y,
+      content: overrides.zocalo || overrides.elements?.zocalo?.content
+    },
+    title: {
+      enabled: overrides.elements?.title?.enabled,
+      x: overrides.elements?.title?.x,
+      y: overrides.elements?.title?.y,
+      content: overrides.title || overrides.elements?.title?.content
+    },
+    quote: {
+      enabled: overrides.elements?.quote?.enabled,
+      x: overrides.elements?.quote?.x,
+      y: overrides.elements?.quote?.y,
+      content: overrides.quote || overrides.elements?.quote?.content
+    }
+  };
+
+  return {
+    presetId: presetRecord.id,
+    name: presetRecord.name,
+    backgroundImageId: typeof overrides.backgroundImageId === 'string'
+      ? overrides.backgroundImageId
+      : presetRecord.backgroundImageId,
+    elements: normalizePresetElements(overrideElements, fallbackElements)
+  };
+};
+
 const refreshImages = () => {
   state.images = sortImages(state.images.map((image) => toImageAsset(image.filename)));
 
   if (state.selectedImageId && !state.images.some((image) => image.id === state.selectedImageId)) {
     state.selectedImageId = state.images[0]?.id ?? null;
+  }
+
+  const availableImageIds = new Set(state.images.map((image) => image.id));
+
+  for (const imageId of Object.keys(state.imageTransforms)) {
+    if (!availableImageIds.has(imageId)) {
+      delete state.imageTransforms[imageId];
+    }
+  }
+
+  state.presets = state.presets.map((preset) => ({
+    ...preset,
+    backgroundImageId: preset.backgroundImageId && availableImageIds.has(preset.backgroundImageId)
+      ? preset.backgroundImageId
+      : null
+  }));
+
+  if (state.activeTextPreset?.backgroundImageId && !availableImageIds.has(state.activeTextPreset.backgroundImageId)) {
+    state.activeTextPreset.backgroundImageId = null;
   }
 };
 
@@ -292,11 +556,12 @@ const setScene = (scene) => {
 };
 
 const setTextLayerVisibility = (layer, visible) => {
-  if (!['zocalo', 'title', 'quote'].includes(layer)) {
+  if (!textLayers.includes(layer)) {
     return false;
   }
 
   state.visibility[layer] = Boolean(visible);
+  syncActivePresetVisibility(layer, state.visibility[layer]);
   return true;
 };
 
@@ -311,7 +576,15 @@ app.get('/state', (req, res) => {
 app.get('/images', (req, res) => {
   res.json({
     images: state.images,
-    selectedImageId: state.selectedImageId
+    selectedImageId: state.selectedImageId,
+    selectedImageTransform: getSelectedImageTransform()
+  });
+});
+
+app.get('/presets', (req, res) => {
+  res.json({
+    presets: state.presets,
+    activeTextPreset: state.activeTextPreset
   });
 });
 
@@ -351,6 +624,7 @@ app.post('/zocalo', (req, res) => {
     partido: String(partido),
     rol: String(rol)
   };
+  syncActivePresetContent('zocalo', state.zocalo);
   touchState();
 
   broadcast({ type: 'ZOCALO', payload: state.zocalo });
@@ -366,6 +640,7 @@ app.post('/title', (req, res) => {
     kicker: String(kicker),
     text: String(text)
   };
+  syncActivePresetContent('title', state.title);
   touchState();
 
   broadcast({ type: 'TITLE', payload: state.title });
@@ -381,6 +656,7 @@ app.post('/quote', (req, res) => {
     speaker: String(speaker),
     text: String(text)
   };
+  syncActivePresetContent('quote', state.quote);
   touchState();
 
   broadcast({ type: 'QUOTE', payload: state.quote });
@@ -439,12 +715,32 @@ app.post('/image/select', (req, res) => {
   }
 
   state.selectedImageId = image.id;
+  const selectedImageTransform = getSelectedImageTransform();
   touchState();
 
   broadcast({ type: 'SHOW_IMAGE', payload: image });
+  broadcast({ type: 'IMAGE_TRANSFORM', payload: { imageId: image.id, transform: selectedImageTransform } });
   syncState();
 
-  res.json({ success: true, image, state: serializeState() });
+  res.json({ success: true, image, selectedImageTransform, state: serializeState() });
+});
+
+app.post('/image/zoom', (req, res) => {
+  if (!state.selectedImageId) {
+    res.status(400).json({ error: 'No image selected' });
+    return;
+  }
+
+  const transform = setSelectedImageTransform(req.body ?? {});
+  touchState();
+
+  broadcast({
+    type: 'IMAGE_TRANSFORM',
+    payload: { imageId: state.selectedImageId, transform }
+  });
+  syncState();
+
+  res.json({ success: true, transform, state: serializeState() });
 });
 
 app.delete('/image/:imageId', async (req, res) => {
@@ -474,8 +770,12 @@ app.delete('/image/:imageId', async (req, res) => {
     }
   }
 
+  delete state.imageTransforms[removedImage.id];
+  refreshImages();
+
   delete imageMetadata[removedImage.id];
   writeImageMetadata(imageMetadata);
+  writeTextPresets(state.presets);
 
   touchState();
 
@@ -507,13 +807,115 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   state.images.unshift(image);
   state.images = sortImages(state.images);
   state.selectedImageId = image.id;
+  state.imageTransforms[image.id] = createDefaultImageTransform();
   touchState();
 
   broadcast({ type: 'IMAGE_LIBRARY', payload: { images: state.images } });
   broadcast({ type: 'SHOW_IMAGE', payload: image });
+  broadcast({ type: 'IMAGE_TRANSFORM', payload: { imageId: image.id, transform: state.imageTransforms[image.id] } });
   syncState();
 
   res.status(201).json({ success: true, image, state: serializeState() });
+});
+
+app.post('/presets', (req, res) => {
+  const now = Date.now();
+  const preset = normalizePresetRecord({
+    id: createPresetId(),
+    name: req.body?.name,
+    backgroundImageId: req.body?.backgroundImageId,
+    elements: req.body?.elements,
+    createdAt: now,
+    updatedAt: now
+  });
+
+  state.presets.unshift(preset);
+  writeTextPresets(state.presets);
+  touchState();
+  syncState();
+
+  res.status(201).json({ success: true, preset, state: serializeState() });
+});
+
+app.patch('/presets/:presetId', (req, res) => {
+  const { presetId } = req.params;
+  const presetIndex = state.presets.findIndex((item) => item.id === presetId);
+
+  if (presetIndex === -1) {
+    res.status(404).json({ error: 'Preset not found' });
+    return;
+  }
+
+  const currentPreset = state.presets[presetIndex];
+  const updatedPreset = normalizePresetRecord({
+    ...currentPreset,
+    name: typeof req.body?.name === 'string' ? req.body.name : currentPreset.name,
+    backgroundImageId: req.body?.backgroundImageId !== undefined ? req.body.backgroundImageId : currentPreset.backgroundImageId,
+    elements: req.body?.elements || currentPreset.elements,
+    createdAt: currentPreset.createdAt,
+    updatedAt: Date.now()
+  });
+
+  state.presets[presetIndex] = updatedPreset;
+  writeTextPresets(state.presets);
+  touchState();
+  syncState();
+
+  res.json({ success: true, preset: updatedPreset, state: serializeState() });
+});
+
+app.delete('/presets/:presetId', (req, res) => {
+  const { presetId } = req.params;
+  const presetIndex = state.presets.findIndex((item) => item.id === presetId);
+
+  if (presetIndex === -1) {
+    res.status(404).json({ error: 'Preset not found' });
+    return;
+  }
+
+  const [removedPreset] = state.presets.splice(presetIndex, 1);
+  writeTextPresets(state.presets);
+  touchState();
+  syncState();
+
+  res.json({ success: true, removedPresetId: removedPreset.id, state: serializeState() });
+});
+
+app.post('/presets/:presetId/activate', (req, res) => {
+  const { presetId } = req.params;
+  const preset = state.presets.find((item) => item.id === presetId);
+
+  if (!preset) {
+    res.status(404).json({ error: 'Preset not found' });
+    return;
+  }
+
+  const runtimePreset = createRuntimePresetFromRecord(preset, req.body ?? {});
+  applyPresetToState(runtimePreset);
+  touchState();
+
+  broadcast({
+    type: 'PRESET_ACTIVATE',
+    payload: {
+      activeTextPreset: state.activeTextPreset,
+      zocalo: state.zocalo,
+      title: state.title,
+      quote: state.quote,
+      visibility: state.visibility
+    }
+  });
+  syncState();
+
+  res.json({ success: true, activeTextPreset: state.activeTextPreset, state: serializeState() });
+});
+
+app.post('/presets/clear-active', (req, res) => {
+  state.activeTextPreset = null;
+  touchState();
+  broadcast({ type: 'PRESET_CLEAR', payload: { activeTextPreset: null } });
+  syncState();
+
+  res.json({ success: true, state: serializeState() });
 });
 
 app.post('/scene', (req, res) => {

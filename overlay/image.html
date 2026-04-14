@@ -46,20 +46,31 @@
         linear-gradient(180deg, rgba(2, 6, 23, 0.12), rgba(2, 6, 23, 0.32));
     }
 
+    .image-viewport {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
     img {
-      position: relative;
+      position: absolute;
+      inset: 0;
       z-index: 1;
       width: 100%;
       height: 100%;
       object-fit: contain;
       filter: drop-shadow(0 24px 80px rgba(15, 23, 42, 0.42));
+      transform-origin: center center;
+      transition: transform 120ms linear;
     }
   </style>
 </head>
 <body>
   <div class="stage">
     <div id="imageShell" class="image-shell">
-      <img id="imageNode" alt="OBS image source">
+      <div class="image-viewport">
+        <img id="imageNode" alt="OBS image source">
+      </div>
     </div>
   </div>
 
@@ -73,8 +84,17 @@
     const imageNode = document.getElementById('imageNode');
     const state = {
       selectedImage: null,
+      selectedImageTransform: { scale: 1, x: 0, y: 0 },
       visibility: { image: false }
     };
+
+    function normalizeTransform(transform) {
+      return {
+        scale: Number.isFinite(Number(transform?.scale)) ? Number(transform.scale) : 1,
+        x: Number.isFinite(Number(transform?.x)) ? Number(transform.x) : 0,
+        y: Number.isFinite(Number(transform?.y)) ? Number(transform.y) : 0
+      };
+    }
 
     function render() {
       if (!state) {
@@ -90,6 +110,9 @@
         imageNode.removeAttribute('src');
       }
 
+      const transform = normalizeTransform(state.selectedImageTransform);
+      imageNode.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`;
+
       imageShell.classList.toggle('visible', visible);
     }
 
@@ -98,6 +121,7 @@
         const response = await fetch(HTTP_URL);
         const payload = await response.json();
         state.selectedImage = payload.selectedImage || null;
+        state.selectedImageTransform = normalizeTransform(payload.selectedImageTransform);
         state.visibility = payload.visibility || state.visibility;
         render();
       } catch (error) {
@@ -113,6 +137,7 @@
 
         if (message.type === 'STATE_SYNC') {
           state.selectedImage = message.payload.selectedImage || null;
+          state.selectedImageTransform = normalizeTransform(message.payload.selectedImageTransform);
           state.visibility = message.payload.visibility || state.visibility;
           render();
         }
@@ -120,6 +145,13 @@
         if (message.type === 'SHOW_IMAGE') {
           state.selectedImage = message.payload;
           render();
+        }
+
+        if (message.type === 'IMAGE_TRANSFORM') {
+          if (!state.selectedImage || message.payload.imageId === state.selectedImage.id) {
+            state.selectedImageTransform = normalizeTransform(message.payload.transform);
+            render();
+          }
         }
 
         if (message.type === 'IMAGE_VISIBILITY') {

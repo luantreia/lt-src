@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OBS Text Source</title>
+  <style>
+    :root {
+      color-scheme: only light;
+      --accent: #00c2ff;
+      --accent-soft: rgba(0, 194, 255, 0.22);
+      --panel: rgba(7, 15, 25, 0.82);
+      --panel-soft: rgba(10, 24, 38, 0.68);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --title-left: 64px;
+      --title-top: 96px;
+      --quote-right: 64px;
+      --quote-bottom: 30px;
+      --zocalo-left: 64px;
+      --zocalo-bottom: 64px;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Arial Narrow", "Trebuchet MS", sans-serif;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+
+    .lower-third {
+      position: absolute;
+      left: var(--zocalo-left);
+      bottom: var(--zocalo-bottom);
+      width: min(1180px, calc(100% - 128px));
+      opacity: 0;
+      transform: translate3d(-28px, 20px, 0) scale(0.985);
+      transform-origin: left bottom;
+      transition: opacity 240ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+
+    .lower-third.visible {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .title-strap {
+      position: absolute;
+      left: var(--title-left);
+      top: var(--title-top);
+      width: min(960px, calc(100% - 128px));
+      opacity: 0;
+      transform: translate3d(-18px, 0, 0);
+      transition: opacity 220ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+
+    .title-strap.visible {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .title-kicker {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.18);
+      border: 1px solid rgba(125, 211, 252, 0.24);
+      color: #e0f2fe;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .title-text {
+      display: block;
+      padding: 22px 26px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(2, 6, 23, 0.9), rgba(15, 23, 42, 0.82));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      box-shadow: 0 26px 70px rgba(2, 6, 23, 0.26);
+    }
+
+    .quote-card {
+      position: absolute;
+      right: var(--quote-right);
+      bottom: var(--quote-bottom);
+      width: min(760px, calc(100% - 128px));
+      opacity: 0;
+      transform: translate3d(22px, 0, 0);
+      transition: opacity 220ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+
+    .quote-card.visible {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .quote-shell {
+      position: relative;
+      padding: 26px 28px 22px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.82));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 26px 70px rgba(2, 6, 23, 0.3);
+      overflow: hidden;
+    }
+
+    .quote-shell::before {
+      content: "“";
+      position: absolute;
+      top: -14px;
+      left: 16px;
+      color: rgba(125, 211, 252, 0.18);
+      font-size: 120px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .quote-text {
+      position: relative;
+      z-index: 1;
+      color: #f8fafc;
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: 0.02em;
+      text-wrap: balance;
+    }
+
+    .quote-speaker {
+      position: relative;
+      z-index: 1;
+      margin-top: 14px;
+      color: #7dd3fc;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 8px 14px 8px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 14px 36px rgba(2, 6, 23, 0.24);
+      color: #dbeafe;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      backdrop-filter: blur(14px);
+    }
+
+    .eyebrow-mark {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+      box-shadow: 0 0 0 6px rgba(14, 165, 233, 0.14);
+    }
+
+    .main-panel {
+      position: relative;
+      overflow: hidden;
+      padding: 22px 28px 20px 34px;
+      border-radius: 30px 30px 22px 22px;
+      background:
+        linear-gradient(125deg, rgba(15, 23, 42, 0.97), rgba(15, 23, 42, 0.82) 58%, rgba(8, 47, 73, 0.86));
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: 0 28px 90px rgba(2, 6, 23, 0.34);
+      backdrop-filter: blur(16px);
+    }
+
+    .main-panel::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 14px;
+      background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+    }
+
+    .main-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 24%, transparent 76%, rgba(56, 189, 248, 0.06));
+      pointer-events: none;
+    }
+
+    .name-box {
+      position: relative;
+      z-index: 1;
+      display: block;
+      max-width: 100%;
+      color: var(--text);
+      font-size: 58px;
+      font-weight: 900;
+      line-height: 0.94;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+      text-wrap: balance;
+      text-shadow: 0 4px 26px rgba(0, 0, 0, 0.28);
+    }
+
+    .meta-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      flex: none;
+      padding: 9px 16px 8px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.24), rgba(14, 165, 233, 0.16));
+      border: 1px solid rgba(125, 211, 252, 0.24);
+      color: #e0f2fe;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .role {
+      flex: 1 1 320px;
+      min-width: 0;
+      color: #dbe7f3;
+      font-size: 25px;
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .bottom-shadow {
+      width: min(900px, calc(100% - 34px));
+      height: 20px;
+      margin-left: 20px;
+      margin-top: 10px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(2, 6, 23, 0.36), rgba(2, 6, 23, 0));
+      filter: blur(12px);
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div id="titleStrap" class="title-strap">
+      <div id="titleKicker" class="title-kicker">TITULO</div>
+      <div id="titleText" class="title-text">Titulo principal</div>
+    </div>
+
+    <div id="quoteCard" class="quote-card">
+      <div class="quote-shell">
+        <div id="quoteText" class="quote-text">Frase destacada</div>
+        <div id="quoteSpeaker" class="quote-speaker">Participante</div>
+      </div>
+    </div>
+
+    <div id="lowerThird" class="lower-third">
+      <div class="eyebrow">
+        <span class="eyebrow-mark"></span>
+        Identificacion al aire
+      </div>
+      <div class="main-panel">
+        <div id="name" class="name-box">WAITING FOR TEXT</div>
+        <div class="meta-row">
+          <div id="party" class="tag">LABEL</div>
+          <div id="role" class="role">Role</div>
+        </div>
+      </div>
+      <div class="bottom-shadow"></div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const apiBase = (params.get('apiBase') || window.location.origin).replace(/\/$/, '');
+    const wsBase = (params.get('wsBase') || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`).replace(/\/$/, '');
+    const HTTP_URL = `${apiBase}/state`;
+    const WS_URL = wsBase;
+    const lowerThird = document.getElementById('lowerThird');
+    const titleStrap = document.getElementById('titleStrap');
+    const titleKickerNode = document.getElementById('titleKicker');
+    const titleTextNode = document.getElementById('titleText');
+    const quoteCard = document.getElementById('quoteCard');
+    const quoteTextNode = document.getElementById('quoteText');
+    const quoteSpeakerNode = document.getElementById('quoteSpeaker');
+    const nameNode = document.getElementById('name');
+    const partyNode = document.getElementById('party');
+    const roleNode = document.getElementById('role');
+    const state = {
+      zocalo: { nombre: '', partido: '', rol: '' },
+      title: { kicker: '', text: '' },
+      quote: { speaker: '', text: '' },
+      visibility: { text: true, zocalo: true, title: false, quote: false }
+    };
+
+    function render() {
+      if (!state || !state.zocalo) {
+        return;
+      }
+
+      nameNode.textContent = state.zocalo.nombre || '';
+      partyNode.textContent = state.zocalo.partido || '';
+      roleNode.textContent = state.zocalo.rol || '';
+      titleKickerNode.textContent = state.title.kicker || 'TITULO';
+      titleTextNode.textContent = state.title.text || '';
+      quoteTextNode.textContent = state.quote.text || '';
+      quoteSpeakerNode.textContent = state.quote.speaker || '';
+
+      const hasContent = Boolean(state.zocalo.nombre || state.zocalo.partido || state.zocalo.rol);
+      const hasTitle = Boolean(state.title.kicker || state.title.text);
+      const hasQuote = Boolean(state.quote.text || state.quote.speaker);
+      lowerThird.classList.toggle('visible', Boolean(state.visibility && state.visibility.text && state.visibility.zocalo && hasContent));
+      titleStrap.classList.toggle('visible', Boolean(state.visibility && state.visibility.text && state.visibility.title && hasTitle));
+      quoteCard.classList.toggle('visible', Boolean(state.visibility && state.visibility.text && state.visibility.quote && hasQuote));
+    }
+
+    async function loadInitialState() {
+      try {
+        const response = await fetch(HTTP_URL);
+        const payload = await response.json();
+        state.zocalo = payload.zocalo || state.zocalo;
+        state.title = payload.title || state.title;
+        state.quote = payload.quote || state.quote;
+        state.visibility = payload.visibility || state.visibility;
+        render();
+      } catch (error) {
+        console.error('Unable to load initial state', error);
+      }
+    }
+
+    function connect() {
+      const socket = new WebSocket(WS_URL);
+
+      socket.addEventListener('message', (event) => {
+        const message = JSON.parse(event.data);
+
+        if (message.type === 'STATE_SYNC') {
+          state.zocalo = message.payload.zocalo || state.zocalo;
+          state.title = message.payload.title || state.title;
+          state.quote = message.payload.quote || state.quote;
+          state.visibility = message.payload.visibility || state.visibility;
+          render();
+        }
+
+        if (message.type === 'ZOCALO') {
+          state.zocalo = message.payload;
+          render();
+        }
+
+        if (message.type === 'TITLE') {
+          state.title = message.payload;
+          render();
+        }
+
+        if (message.type === 'QUOTE') {
+          state.quote = message.payload;
+          render();
+        }
+
+        if (message.type === 'TEXT_VISIBILITY') {
+          state.visibility.text = Boolean(message.payload.visible);
+          render();
+        }
+
+        if (message.type === 'TEXT_LAYER_VISIBILITY') {
+          state.visibility[message.payload.layer] = Boolean(message.payload.visible);
+          render();
+        }
+      });
+
+      socket.addEventListener('close', () => {
+        setTimeout(connect, 2000);
+      });
+
+      socket.addEventListener('error', () => {
+        socket.close();
+      });
+    }
+
+    loadInitialState();
+    connect();
+  </script>
+</body>
+</html>

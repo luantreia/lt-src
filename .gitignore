@@ -5,3 +5,7 @@ client/dist/
 .env
 .env.*
 !.env.example
+
+# Runtime data — managed on persistent disk in production (Render DATA_DIR)
+server/uploads/
+server/image-metadata.json

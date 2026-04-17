@@ -141,6 +141,11 @@ const normalizeChoice = (value, choices, fallback) => (
   choices.includes(value) ? value : fallback
 );
 
+const normalizeHexColor = (value, fallback) => {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized.toUpperCase() : fallback;
+};
+
 const createDefaultZocaloStyle = () => ({
   bgAlignX: 'left',
   bgLeft: 0,
@@ -154,7 +159,8 @@ const createDefaultZocaloStyle = () => ({
   textAlignY: 'top',
   fontSize: 42,
   fontFamily: zocaloFontOptions[0],
-  fontWeight: 900
+  fontWeight: 900,
+  textColor: '#FFFFFF'
 });
 
 const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => ({
@@ -170,7 +176,8 @@ const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => (
   textAlignY: normalizeChoice(value?.textAlignY, ['top', 'center', 'bottom'], fallback.textAlignY),
   fontSize: clampNumber(value?.fontSize, 12, 180, fallback.fontSize),
   fontFamily: normalizeChoice(value?.fontFamily, zocaloFontOptions, fallback.fontFamily),
-  fontWeight: clampNumber(value?.fontWeight, 100, 900, fallback.fontWeight)
+  fontWeight: clampNumber(value?.fontWeight, 100, 900, fallback.fontWeight),
+  textColor: normalizeHexColor(value?.textColor, fallback.textColor)
 });
 
 const readZocaloStyle = () => {

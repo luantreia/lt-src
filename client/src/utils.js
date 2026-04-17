@@ -26,6 +26,11 @@ const normalizeChoice = (value, choices, fallback) => (
   choices.includes(value) ? value : fallback
 );
 
+const normalizeHexColor = (value, fallback) => {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized.toUpperCase() : fallback;
+};
+
 export const ZOCALO_FONT_OPTIONS = zocaloFontOptions;
 
 export const defaultZocaloStyle = {
@@ -42,6 +47,7 @@ export const defaultZocaloStyle = {
   fontSize: 42,
   fontFamily: zocaloFontOptions[0],
   fontWeight: 900,
+  textColor: '#FFFFFF',
 };
 
 export const normalizeZocaloStyle = (value) => ({
@@ -58,6 +64,7 @@ export const normalizeZocaloStyle = (value) => ({
   fontSize: clampNumber(value?.fontSize, 12, 180, defaultZocaloStyle.fontSize),
   fontFamily: normalizeChoice(value?.fontFamily, zocaloFontOptions, defaultZocaloStyle.fontFamily),
   fontWeight: clampNumber(value?.fontWeight, 100, 900, defaultZocaloStyle.fontWeight),
+  textColor: normalizeHexColor(value?.textColor, defaultZocaloStyle.textColor),
 });
 
 export const normalizeImageTransform = (value) => ({

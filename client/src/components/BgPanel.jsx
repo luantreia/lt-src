@@ -4,28 +4,13 @@ import {
   defaultZocaloStyle,
   normalizeZocaloStyle,
   OVERLAY_BASE,
-  ZOCALO_FONT_OPTIONS,
 } from '../utils.js';
-
-const alignXOptions = [
-  { value: 'left', label: 'Izq' },
-  { value: 'center', label: 'Centro' },
-  { value: 'right', label: 'Der' },
-];
-
-const alignYOptions = [
-  { value: 'top', label: 'Arriba' },
-  { value: 'center', label: 'Centro' },
-  { value: 'bottom', label: 'Abajo' },
-];
 
 const bgAlignXOptions = [
   { value: 'left', label: 'Izq' },
   { value: 'center', label: 'Centro' },
   { value: 'right', label: 'Der' },
 ];
-
-const fontWeightOptions = [400, 500, 600, 700, 800, 900];
 
 const styleSignature = (value) => JSON.stringify(normalizeZocaloStyle(value));
 
@@ -145,11 +130,6 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
   }
 
   const previewText = texto.trim() || 'VISTA PREVIA DEL ZOCALO';
-  const verticalAlign = {
-    top: 'flex-start',
-    center: 'center',
-    bottom: 'flex-end',
-  }[draftStyle.textAlignY];
   const previewAnchorMap = {
     left: { left: '0%', translateX: '0%' },
     center: { left: '50%', translateX: '-50%' },
@@ -205,11 +185,16 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
                     paddingBottom: `${draftStyle.textInsetBottom}px`,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: verticalAlign,
+                    justifyContent: {
+                      top: 'flex-start',
+                      center: 'center',
+                      bottom: 'flex-end',
+                    }[draftStyle.textAlignY],
                     textAlign: draftStyle.textAlignX,
                     fontSize: `${draftStyle.fontSize}px`,
                     fontFamily: draftStyle.fontFamily,
                     fontWeight: draftStyle.fontWeight,
+                    color: draftStyle.textColor,
                     lineHeight: 1.1,
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase',
@@ -253,50 +238,7 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
               <RangeField label="Margen inferior" min={0} max={1080} value={draftStyle.bgBottom} onChange={(value) => updateStyle('bgBottom', value)} />
               <RangeField label="Ancho del fondo" min={200} max={1920} value={draftStyle.bgWidth} onChange={(value) => updateStyle('bgWidth', value)} />
             </div>
-
-            <div className="space-y-4">
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Texto</span>
-              <RangeField label="Margen interno izquierdo" min={0} max={1200} value={draftStyle.textInsetLeft} onChange={(value) => updateStyle('textInsetLeft', value)} />
-              <RangeField label="Margen interno derecho" min={0} max={1200} value={draftStyle.textInsetRight} onChange={(value) => updateStyle('textInsetRight', value)} />
-              <RangeField label="Margen interno superior" min={0} max={600} value={draftStyle.textInsetTop} onChange={(value) => updateStyle('textInsetTop', value)} />
-              <RangeField label="Margen interno inferior" min={0} max={600} value={draftStyle.textInsetBottom} onChange={(value) => updateStyle('textInsetBottom', value)} />
-            </div>
           </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <SegmentedControl label="Alineacion horizontal" options={alignXOptions} value={draftStyle.textAlignX} onChange={(value) => updateStyle('textAlignX', value)} />
-            <SegmentedControl label="Alineacion vertical" options={alignYOptions} value={draftStyle.textAlignY} onChange={(value) => updateStyle('textAlignY', value)} />
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <RangeField label="Tamano de fuente" min={12} max={180} value={draftStyle.fontSize} onChange={(value) => updateStyle('fontSize', value)} />
-
-            <label className="block space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Peso de fuente</span>
-              <select
-                value={draftStyle.fontWeight}
-                onChange={(event) => updateStyle('fontWeight', event.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition focus:border-sky-500"
-              >
-                {fontWeightOptions.map((weight) => (
-                  <option key={weight} value={weight}>{weight}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <label className="block space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Fuente</span>
-            <select
-              value={draftStyle.fontFamily}
-              onChange={(event) => updateStyle('fontFamily', event.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition focus:border-sky-500"
-            >
-              {ZOCALO_FONT_OPTIONS.map((fontFamily) => (
-                <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
-              ))}
-            </select>
-          </label>
         </div>
       )}
     </div>

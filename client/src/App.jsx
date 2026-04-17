@@ -49,6 +49,8 @@ function App() {
           setTexto={setTexto}
           visible={visible}
           setVisible={setVisible}
+          zocaloStyle={zocaloStyle}
+          setZocaloStyle={setZocaloStyle}
           requestJson={requestJson}
           setStatus={setStatus}
         />

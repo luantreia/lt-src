@@ -48,10 +48,11 @@ export const defaultZocaloBgStyle = {
 };
 
 export const defaultZocaloTextStyle = {
-  textInsetLeft: 180,
-  textInsetRight: 40,
-  textInsetTop: 36,
-  textInsetBottom: 36,
+  textAnchorX: 'left',
+  textAnchorY: 'top',
+  textOffsetX: 180,
+  textOffsetY: 36,
+  textWidth: 900,
   textAlignX: 'left',
   textAlignY: 'top',
   fontSize: 42,
@@ -74,10 +75,26 @@ export const normalizeZocaloBgStyle = (value) => ({
 });
 
 export const normalizeZocaloTextStyle = (value) => ({
-  textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, defaultZocaloTextStyle.textInsetLeft),
-  textInsetRight: clampNumber(value?.textInsetRight, 0, 1800, defaultZocaloTextStyle.textInsetRight),
-  textInsetTop: clampNumber(value?.textInsetTop, 0, 1000, defaultZocaloTextStyle.textInsetTop),
-  textInsetBottom: clampNumber(value?.textInsetBottom, 0, 1000, defaultZocaloTextStyle.textInsetBottom),
+  textAnchorX: normalizeChoice(value?.textAnchorX, ['left', 'center', 'right'], defaultZocaloTextStyle.textAnchorX),
+  textAnchorY: normalizeChoice(value?.textAnchorY, ['top', 'center', 'bottom'], defaultZocaloTextStyle.textAnchorY),
+  textOffsetX: clampNumber(
+    value?.textOffsetX ?? value?.textInsetLeft,
+    -1800,
+    1800,
+    defaultZocaloTextStyle.textOffsetX
+  ),
+  textOffsetY: clampNumber(
+    value?.textOffsetY ?? value?.textInsetTop,
+    -1000,
+    1000,
+    defaultZocaloTextStyle.textOffsetY
+  ),
+  textWidth: clampNumber(
+    value?.textWidth ?? ((Number(value?.bgWidth) || defaultZocaloBgStyle.bgWidth) - (Number(value?.textInsetLeft) || 180) - (Number(value?.textInsetRight) || 40)),
+    120,
+    1800,
+    defaultZocaloTextStyle.textWidth
+  ),
   textAlignX: normalizeChoice(value?.textAlignX, ['left', 'center', 'right'], defaultZocaloTextStyle.textAlignX),
   textAlignY: normalizeChoice(value?.textAlignY, ['top', 'center', 'bottom'], defaultZocaloTextStyle.textAlignY),
   fontSize: clampNumber(value?.fontSize, 12, 180, defaultZocaloTextStyle.fontSize),

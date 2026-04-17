@@ -108,7 +108,7 @@ export function BgPanel({ texto, bgStyle, textStyle, updateBgStyle, resetBgStyle
       {settingsOpen && (
         <div className="space-y-5 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Configuracion fina del zocalo</span>
+            <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Ubicacion del fondo</span>
             <button
               type="button"
               onClick={resetBgStyle}
@@ -120,10 +120,10 @@ export function BgPanel({ texto, bgStyle, textStyle, updateBgStyle, resetBgStyle
 
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-4">
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Fondo</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Ubicacion</span>
               <SegmentedControl label="Anclaje horizontal" options={bgAlignXOptions} value={bgStyle.bgAlignX} onChange={(value) => updateBgStyle({ bgAlignX: value })} />
               <RangeField label="Offset horizontal" min={-960} max={960} value={bgStyle.bgLeft} onChange={(value) => updateBgStyle({ bgLeft: value })} />
-              <RangeField label="Margen inferior" min={0} max={1080} value={bgStyle.bgBottom} onChange={(value) => updateBgStyle({ bgBottom: value })} />
+              <RangeField label="Offset vertical" min={0} max={1080} value={bgStyle.bgBottom} onChange={(value) => updateBgStyle({ bgBottom: value })} />
               <RangeField label="Ancho del fondo" min={200} max={1920} value={bgStyle.bgWidth} onChange={(value) => updateBgStyle({ bgWidth: value })} />
             </div>
           </div>

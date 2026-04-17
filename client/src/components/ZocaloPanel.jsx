@@ -109,13 +109,16 @@ export function ZocaloPanel({ texto, setTexto, visible, setVisible, textStyle, u
           <div className="mt-5 space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-4">
-                <RangeField label="Margen interno izquierdo" min={0} max={1200} value={textStyle.textInsetLeft} onChange={(value) => updateTextStyle({ textInsetLeft: value })} />
-                <RangeField label="Margen interno derecho" min={0} max={1200} value={textStyle.textInsetRight} onChange={(value) => updateTextStyle({ textInsetRight: value })} />
-                <RangeField label="Margen interno superior" min={0} max={600} value={textStyle.textInsetTop} onChange={(value) => updateTextStyle({ textInsetTop: value })} />
-                <RangeField label="Margen interno inferior" min={0} max={600} value={textStyle.textInsetBottom} onChange={(value) => updateTextStyle({ textInsetBottom: value })} />
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Ubicacion</span>
+                <SegmentedControl label="Anclaje horizontal" options={alignXOptions} value={textStyle.textAnchorX} onChange={(value) => updateTextStyle({ textAnchorX: value })} />
+                <SegmentedControl label="Anclaje vertical" options={alignYOptions} value={textStyle.textAnchorY} onChange={(value) => updateTextStyle({ textAnchorY: value })} />
+                <RangeField label="Offset horizontal" min={-1200} max={1200} value={textStyle.textOffsetX} onChange={(value) => updateTextStyle({ textOffsetX: value })} />
+                <RangeField label="Offset vertical" min={-500} max={500} value={textStyle.textOffsetY} onChange={(value) => updateTextStyle({ textOffsetY: value })} />
+                <RangeField label="Ancho del bloque" min={120} max={1800} value={textStyle.textWidth} onChange={(value) => updateTextStyle({ textWidth: value })} />
               </div>
 
               <div className="space-y-4">
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Contenido</span>
                 <SegmentedControl label="Alineacion horizontal" options={alignXOptions} value={textStyle.textAlignX} onChange={(value) => updateTextStyle({ textAlignX: value })} />
                 <SegmentedControl label="Alineacion vertical" options={alignYOptions} value={textStyle.textAlignY} onChange={(value) => updateTextStyle({ textAlignY: value })} />
                 <RangeField label="Tamano de fuente" min={12} max={180} value={textStyle.fontSize} onChange={(value) => updateTextStyle({ fontSize: value })} />

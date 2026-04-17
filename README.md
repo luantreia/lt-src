@@ -8,6 +8,17 @@ Real-time broadcast graphics control for OBS with a React panel, an Express API 
 - `server/`: Express API, image processing, upload persistence and WebSocket sync.
 - `overlay/`: static OBS browser-source pages served by the backend at `/overlay/*`.
 
+### Client Structure
+
+- `src/App.jsx`: top-level orchestration and backend state snapshot application.
+- `src/hooks/useSession.js`: backend wake-up, keepalive and reconnect behavior.
+- `src/hooks/useZocaloStyle.js`: debounced lower-third style sync for background and text settings.
+- `src/components/ZocaloPanel.jsx`: lower-third text content and text style controls.
+- `src/components/BgPanel.jsx`: lower-third background upload, real embedded overlay preview and background positioning controls.
+- `src/components/ImagesPanel.jsx`: image library, selection and transform controls.
+- `src/components/controls/*`: shared UI controls used by the zocalo configuration panels.
+- `src/utils.js`: shared defaults and style normalization helpers.
+
 The deployment target for this repository is:
 
 - GitHub as the single repository.
@@ -115,6 +126,8 @@ Render must serve the backend and overlays from the same public origin so that:
 - `GET /state`: current full state.
 - `GET /images`: uploaded image library.
 - `POST /zocalo`: update lower-third text.
+- `POST /zocalo-style`: update lower-third style. Supports nested `bg` and `text` patches.
+- `POST /zocalo-bg`: upload or replace the lower-third base PNG at `overlay/zocalo-bg.png`.
 - `POST /title`: update title strap.
 - `POST /quote`: update quote card.
 - `POST /upload`: upload one image.
@@ -129,6 +142,8 @@ Render must serve the backend and overlays from the same public origin so that:
 ## Notes
 
 - Uploaded images are normalized to `1920x1080 PNG`.
+- Lower-third style is persisted on the backend and pushed live to overlays via WebSocket.
+- Lower-third style is now split into `zocaloStyle.bg` and `zocaloStyle.text`.
 - Text and image visibility are controlled independently.
 - Overlays reconnect automatically if the WebSocket drops.
 - Keyboard shortcuts in the panel:
@@ -136,6 +151,58 @@ Render must serve the backend and overlays from the same public origin so that:
   - `2` hide text
   - `3` show image
   - `4` hide image
+
+## Lower-Third Style Shape
+
+`GET /state` returns the lower-third style under `zocaloStyle`:
+
+```json
+{
+  "zocaloStyle": {
+    "bg": {
+      "bgAlignX": "left",
+      "bgLeft": 0,
+      "bgBottom": 0,
+      "bgWidth": 1120
+    },
+    "text": {
+      "textInsetLeft": 180,
+      "textInsetRight": 40,
+      "textInsetTop": 36,
+      "textInsetBottom": 36,
+      "textAlignX": "left",
+      "textAlignY": "top",
+      "fontSize": 42,
+      "fontFamily": "\"Arial Narrow\", \"Trebuchet MS\", sans-serif",
+      "fontWeight": 900,
+      "textColor": "#FFFFFF",
+      "textUppercase": true
+    }
+  }
+}
+```
+
+Example patch requests:
+
+```json
+{
+  "bg": {
+    "bgAlignX": "center",
+    "bgLeft": -24,
+    "bgWidth": 1550
+  }
+}
+```
+
+```json
+{
+  "text": {
+    "textAlignX": "center",
+    "fontSize": 54,
+    "textColor": "#FACC15"
+  }
+}
+```
 
 ## Requirements
 

@@ -1,5 +1,12 @@
 export const normalizeBaseUrl = (value, fallback) => (value || fallback).replace(/\/$/, '');
 
+export const toWebSocketBaseUrl = (value) => {
+  const normalized = normalizeBaseUrl(value, 'http://localhost:3000');
+  if (normalized.startsWith('https://')) return normalized.replace('https://', 'wss://');
+  if (normalized.startsWith('http://')) return normalized.replace('http://', 'ws://');
+  return normalized;
+};
+
 export const toPositiveNumber = (value, fallback) => {
   const parsedValue = Number(value);
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallback;
@@ -33,11 +40,14 @@ const normalizeHexColor = (value, fallback) => {
 
 export const ZOCALO_FONT_OPTIONS = zocaloFontOptions;
 
-export const defaultZocaloStyle = {
+export const defaultZocaloBgStyle = {
   bgAlignX: 'left',
   bgLeft: 0,
   bgBottom: 0,
   bgWidth: 1120,
+};
+
+export const defaultZocaloTextStyle = {
   textInsetLeft: 180,
   textInsetRight: 40,
   textInsetTop: 36,
@@ -48,23 +58,38 @@ export const defaultZocaloStyle = {
   fontFamily: zocaloFontOptions[0],
   fontWeight: 900,
   textColor: '#FFFFFF',
+  textUppercase: true,
 };
 
+export const defaultZocaloStyle = {
+  bg: defaultZocaloBgStyle,
+  text: defaultZocaloTextStyle,
+};
+
+export const normalizeZocaloBgStyle = (value) => ({
+  bgAlignX: normalizeChoice(value?.bgAlignX, ['left', 'center', 'right'], defaultZocaloBgStyle.bgAlignX),
+  bgLeft: clampNumber(value?.bgLeft, -1920, 1920, defaultZocaloBgStyle.bgLeft),
+  bgBottom: clampNumber(value?.bgBottom, 0, 1080, defaultZocaloBgStyle.bgBottom),
+  bgWidth: clampNumber(value?.bgWidth, 200, 1920, defaultZocaloBgStyle.bgWidth),
+});
+
+export const normalizeZocaloTextStyle = (value) => ({
+  textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, defaultZocaloTextStyle.textInsetLeft),
+  textInsetRight: clampNumber(value?.textInsetRight, 0, 1800, defaultZocaloTextStyle.textInsetRight),
+  textInsetTop: clampNumber(value?.textInsetTop, 0, 1000, defaultZocaloTextStyle.textInsetTop),
+  textInsetBottom: clampNumber(value?.textInsetBottom, 0, 1000, defaultZocaloTextStyle.textInsetBottom),
+  textAlignX: normalizeChoice(value?.textAlignX, ['left', 'center', 'right'], defaultZocaloTextStyle.textAlignX),
+  textAlignY: normalizeChoice(value?.textAlignY, ['top', 'center', 'bottom'], defaultZocaloTextStyle.textAlignY),
+  fontSize: clampNumber(value?.fontSize, 12, 180, defaultZocaloTextStyle.fontSize),
+  fontFamily: normalizeChoice(value?.fontFamily, zocaloFontOptions, defaultZocaloTextStyle.fontFamily),
+  fontWeight: clampNumber(value?.fontWeight, 100, 900, defaultZocaloTextStyle.fontWeight),
+  textColor: normalizeHexColor(value?.textColor, defaultZocaloTextStyle.textColor),
+  textUppercase: typeof value?.textUppercase === 'boolean' ? value.textUppercase : defaultZocaloTextStyle.textUppercase,
+});
+
 export const normalizeZocaloStyle = (value) => ({
-  bgAlignX: normalizeChoice(value?.bgAlignX, ['left', 'center', 'right'], defaultZocaloStyle.bgAlignX),
-  bgLeft: clampNumber(value?.bgLeft, -1920, 1920, defaultZocaloStyle.bgLeft),
-  bgBottom: clampNumber(value?.bgBottom, 0, 1080, defaultZocaloStyle.bgBottom),
-  bgWidth: clampNumber(value?.bgWidth, 200, 1920, defaultZocaloStyle.bgWidth),
-  textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, defaultZocaloStyle.textInsetLeft),
-  textInsetRight: clampNumber(value?.textInsetRight, 0, 1800, defaultZocaloStyle.textInsetRight),
-  textInsetTop: clampNumber(value?.textInsetTop, 0, 1000, defaultZocaloStyle.textInsetTop),
-  textInsetBottom: clampNumber(value?.textInsetBottom, 0, 1000, defaultZocaloStyle.textInsetBottom),
-  textAlignX: normalizeChoice(value?.textAlignX, ['left', 'center', 'right'], defaultZocaloStyle.textAlignX),
-  textAlignY: normalizeChoice(value?.textAlignY, ['top', 'center', 'bottom'], defaultZocaloStyle.textAlignY),
-  fontSize: clampNumber(value?.fontSize, 12, 180, defaultZocaloStyle.fontSize),
-  fontFamily: normalizeChoice(value?.fontFamily, zocaloFontOptions, defaultZocaloStyle.fontFamily),
-  fontWeight: clampNumber(value?.fontWeight, 100, 900, defaultZocaloStyle.fontWeight),
-  textColor: normalizeHexColor(value?.textColor, defaultZocaloStyle.textColor),
+  bg: normalizeZocaloBgStyle(value?.bg ?? value),
+  text: normalizeZocaloTextStyle(value?.text ?? value),
 });
 
 export const normalizeImageTransform = (value) => ({
@@ -84,6 +109,8 @@ export const OVERLAY_BASE = normalizeBaseUrl(
   import.meta.env.VITE_OVERLAY_BASE_URL,
   API_BASE
 );
+
+export const OVERLAY_WS_BASE = toWebSocketBaseUrl(OVERLAY_BASE);
 
 export const KEEPALIVE_INTERVAL_MS = toPositiveNumber(
   import.meta.env.VITE_KEEPALIVE_INTERVAL_MS,

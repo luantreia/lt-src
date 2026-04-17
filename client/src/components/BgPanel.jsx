@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { RotateCcw, Settings, Upload } from 'lucide-react';
 import {
-  defaultZocaloStyle,
-  normalizeZocaloStyle,
+  API_BASE,
   OVERLAY_BASE,
+  OVERLAY_WS_BASE,
 } from '../utils.js';
+import { RangeField } from './controls/RangeField.jsx';
+import { SegmentedControl } from './controls/SegmentedControl.jsx';
 
 const bgAlignXOptions = [
   { value: 'left', label: 'Izq' },
@@ -12,94 +14,10 @@ const bgAlignXOptions = [
   { value: 'right', label: 'Der' },
 ];
 
-const styleSignature = (value) => JSON.stringify(normalizeZocaloStyle(value));
-
-function RangeField({ label, min, max, step = 1, value, onChange }) {
-  return (
-    <label className="block space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-        <input
-          type="number"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-24 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-right text-xs text-white outline-none transition focus:border-sky-500"
-        />
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full accent-sky-500"
-      />
-    </label>
-  );
-}
-
-function SegmentedControl({ label, options, value, onChange }) {
-  return (
-    <div className="space-y-2">
-      <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <div className="grid grid-cols-3 gap-2">
-        {options.map((option) => {
-          const active = option.value === value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className={`rounded-lg border px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition ${active ? 'border-sky-500 bg-sky-500/15 text-sky-300' : 'border-slate-700 bg-slate-950 text-slate-400 hover:border-slate-600 hover:text-slate-200'}`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setStatus }) {
+export function BgPanel({ texto, bgStyle, updateBgStyle, resetBgStyle, requestJson, setStatus }) {
   const [bgVersion, setBgVersion] = useState(Date.now());
   const [uploading, setUploading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [previewLoaded, setPreviewLoaded] = useState(true);
-  const [draftStyle, setDraftStyle] = useState(() => normalizeZocaloStyle(zocaloStyle));
-  const syncedStyleRef = useRef(styleSignature(zocaloStyle));
-
-  useEffect(() => {
-    const normalized = normalizeZocaloStyle(zocaloStyle);
-    syncedStyleRef.current = styleSignature(normalized);
-    setDraftStyle(normalized);
-  }, [zocaloStyle]);
-
-  useEffect(() => {
-    const normalized = normalizeZocaloStyle(draftStyle);
-    if (styleSignature(normalized) === syncedStyleRef.current) {
-      return undefined;
-    }
-
-    const timerId = window.setTimeout(async () => {
-      try {
-        const data = await requestJson('/zocalo-style', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(normalized),
-        });
-        setZocaloStyle(normalizeZocaloStyle(data.state?.zocaloStyle || data.zocaloStyle || normalized));
-      } catch (error) {
-        setStatus(error.message);
-      }
-    }, 140);
-
-    return () => window.clearTimeout(timerId);
-  }, [draftStyle, requestJson, setStatus, setZocaloStyle]);
 
   async function handleUpload(event) {
     const file = event.target.files?.[0];
@@ -110,7 +28,6 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
       formData.append('image', file);
       await requestJson('/zocalo-bg', { method: 'POST', body: formData });
       setBgVersion(Date.now());
-      setPreviewLoaded(true);
       setStatus('Fondo del zocalo actualizado');
     } catch (error) {
       setStatus(error.message);
@@ -120,22 +37,7 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
     }
   }
 
-  function updateStyle(key, value) {
-    setDraftStyle((current) => normalizeZocaloStyle({ ...current, [key]: value }));
-  }
-
-  function resetStyle() {
-    setDraftStyle(defaultZocaloStyle);
-    setStatus('Ajustes del zocalo reiniciados');
-  }
-
-  const previewText = texto.trim() || 'VISTA PREVIA DEL ZOCALO';
-  const previewAnchorMap = {
-    left: { left: '0%', translateX: '0%' },
-    center: { left: '50%', translateX: '-50%' },
-    right: { left: '100%', translateX: '-100%' },
-  };
-  const previewAnchor = previewAnchorMap[draftStyle.bgAlignX] || previewAnchorMap.left;
+  const overlayPreviewUrl = `${OVERLAY_BASE}/overlay/text.html?apiBase=${encodeURIComponent(API_BASE)}&wsBase=${encodeURIComponent(OVERLAY_WS_BASE)}&previewVersion=${bgVersion}`;
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4">
@@ -153,59 +55,18 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
       <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
         <div className="relative h-64 overflow-hidden">
           <div className="absolute left-0 top-0 h-[1080px] w-[1920px] origin-top-left scale-[0.17] bg-[radial-gradient(circle_at_top,#1e293b_0%,#020617_72%)]">
-            <div
-              className="absolute"
-              style={{
-                left: previewAnchor.left,
-                bottom: `${draftStyle.bgBottom}px`,
-                width: `${draftStyle.bgWidth}px`,
-                transform: `translateX(calc(${previewAnchor.translateX} + ${draftStyle.bgLeft}px))`,
-              }}
-            >
-              <div className="relative">
-                <img
-                  key={bgVersion}
-                  src={`${OVERLAY_BASE}/overlay/zocalo-bg.png?v=${bgVersion}`}
-                  alt="Fondo del zocalo"
-                  className="block w-full"
-                  onError={() => setPreviewLoaded(false)}
-                  onLoad={() => setPreviewLoaded(true)}
-                />
-                {!previewLoaded && (
-                  <div className="absolute inset-0 flex min-h-40 items-center justify-center border border-dashed border-slate-500 bg-slate-800/90 text-center text-3xl font-bold uppercase tracking-[0.18em] text-slate-400">
-                    Sin PNG base
-                  </div>
-                )}
-                <div
-                  className="absolute inset-0 overflow-hidden text-white"
-                  style={{
-                    paddingLeft: `${draftStyle.textInsetLeft}px`,
-                    paddingRight: `${draftStyle.textInsetRight}px`,
-                    paddingTop: `${draftStyle.textInsetTop}px`,
-                    paddingBottom: `${draftStyle.textInsetBottom}px`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: {
-                      top: 'flex-start',
-                      center: 'center',
-                      bottom: 'flex-end',
-                    }[draftStyle.textAlignY],
-                    textAlign: draftStyle.textAlignX,
-                    fontSize: `${draftStyle.fontSize}px`,
-                    fontFamily: draftStyle.fontFamily,
-                    fontWeight: draftStyle.fontWeight,
-                    color: draftStyle.textColor,
-                    lineHeight: 1.1,
-                    letterSpacing: '0.03em',
-                    textTransform: 'uppercase',
-                    textShadow: '0 2px 12px rgba(0, 0, 0, 0.45)',
-                  }}
-                >
-                  <div>{previewText}</div>
-                </div>
-              </div>
-            </div>
+            <iframe
+              key={overlayPreviewUrl}
+              title="Preview del overlay real"
+              src={overlayPreviewUrl}
+              className="h-[1080px] w-[1920px] border-0 bg-transparent"
+            />
           </div>
+          {!texto.trim() && (
+            <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-slate-700 bg-slate-950/85 px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              El preview real queda vacio hasta que envies texto al zocalo
+            </div>
+          )}
         </div>
       </div>
 
@@ -223,7 +84,7 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
             <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Configuracion fina del zocalo</span>
             <button
               type="button"
-              onClick={resetStyle}
+              onClick={resetBgStyle}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-300 transition hover:border-slate-500 hover:text-white"
             >
               <RotateCcw size={14} /> Reset
@@ -233,10 +94,10 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-4">
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Fondo</span>
-              <SegmentedControl label="Anclaje horizontal" options={bgAlignXOptions} value={draftStyle.bgAlignX} onChange={(value) => updateStyle('bgAlignX', value)} />
-              <RangeField label="Offset horizontal" min={-960} max={960} value={draftStyle.bgLeft} onChange={(value) => updateStyle('bgLeft', value)} />
-              <RangeField label="Margen inferior" min={0} max={1080} value={draftStyle.bgBottom} onChange={(value) => updateStyle('bgBottom', value)} />
-              <RangeField label="Ancho del fondo" min={200} max={1920} value={draftStyle.bgWidth} onChange={(value) => updateStyle('bgWidth', value)} />
+              <SegmentedControl label="Anclaje horizontal" options={bgAlignXOptions} value={bgStyle.bgAlignX} onChange={(value) => updateBgStyle({ bgAlignX: value })} />
+              <RangeField label="Offset horizontal" min={-960} max={960} value={bgStyle.bgLeft} onChange={(value) => updateBgStyle({ bgLeft: value })} />
+              <RangeField label="Margen inferior" min={0} max={1080} value={bgStyle.bgBottom} onChange={(value) => updateBgStyle({ bgBottom: value })} />
+              <RangeField label="Ancho del fondo" min={200} max={1920} value={bgStyle.bgWidth} onChange={(value) => updateBgStyle({ bgWidth: value })} />
             </div>
           </div>
         </div>

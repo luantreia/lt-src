@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useSession } from './hooks/useSession.js';
-import { defaultZocaloStyle, initialImageTransform, normalizeImageTransform, normalizeZocaloStyle } from './utils.js';
+import { initialImageTransform, normalizeImageTransform } from './utils.js';
+import { useZocaloStyle } from './hooks/useZocaloStyle.js';
 import { ZocaloPanel } from './components/ZocaloPanel.jsx';
 import { BgPanel } from './components/BgPanel.jsx';
 import { ImagesPanel } from './components/ImagesPanel.jsx';
@@ -12,8 +13,21 @@ function App() {
   const [selectedImageId, setSelectedImageId] = useState(null);
   const [imageVisible, setImageVisible] = useState(false);
   const [imageTransform, setImageTransform] = useState(initialImageTransform);
-  const [zocaloStyle, setZocaloStyle] = useState(defaultZocaloStyle);
   const skipTransformSyncRef = useRef(true);
+
+  const { requestJson, status, setStatus, loading, sessionLabel } = useSession({
+    onStateSnapshot: applyStateSnapshot,
+  });
+
+  const {
+    bgStyle,
+    textStyle,
+    applyRemoteStyle,
+    updateBgStyle,
+    updateTextStyle,
+    resetBgStyle,
+    resetTextStyle,
+  } = useZocaloStyle({ requestJson, setStatus });
 
   function applyStateSnapshot(data) {
     if (!data) return;
@@ -22,14 +36,10 @@ function App() {
     setImages(data.images || []);
     setSelectedImageId(data.selectedImage?.id || null);
     setImageVisible(Boolean(data.visibility?.image ?? false));
-    setZocaloStyle(normalizeZocaloStyle(data.zocaloStyle || defaultZocaloStyle));
+    applyRemoteStyle(data.zocaloStyle);
     skipTransformSyncRef.current = true;
     setImageTransform(normalizeImageTransform(data.selectedImageTransform || initialImageTransform));
   }
-
-  const { requestJson, status, setStatus, loading, sessionLabel } = useSession({
-    onStateSnapshot: applyStateSnapshot,
-  });
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-8 text-white">
@@ -49,16 +59,18 @@ function App() {
           setTexto={setTexto}
           visible={visible}
           setVisible={setVisible}
-          zocaloStyle={zocaloStyle}
-          setZocaloStyle={setZocaloStyle}
+          textStyle={textStyle}
+          updateTextStyle={updateTextStyle}
+          resetTextStyle={resetTextStyle}
           requestJson={requestJson}
           setStatus={setStatus}
         />
 
         <BgPanel
           texto={texto}
-          zocaloStyle={zocaloStyle}
-          setZocaloStyle={setZocaloStyle}
+          bgStyle={bgStyle}
+          updateBgStyle={updateBgStyle}
+          resetBgStyle={resetBgStyle}
           requestJson={requestJson}
           setStatus={setStatus}
         />

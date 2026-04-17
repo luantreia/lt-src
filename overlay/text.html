@@ -23,6 +23,7 @@
       --texto-font-family: "Arial Narrow", "Trebuchet MS", sans-serif;
       --texto-weight: 900;
       --texto-color: #FFFFFF;
+      --texto-transform: uppercase;
       --texto-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
       --texto-tracking: 0.03em;
     }
@@ -87,7 +88,7 @@
       font-weight: var(--texto-weight);
       line-height: 1.1;
       letter-spacing: var(--texto-tracking);
-      text-transform: uppercase;
+      text-transform: var(--texto-transform);
       text-shadow: var(--texto-shadow);
       white-space: pre-wrap;
       word-break: break-word;
@@ -111,23 +112,29 @@
 
     const lowerThird = document.getElementById('lowerThird');
     const textoNode = document.getElementById('texto');
+    const zocaloBgNode = document.getElementById('zocaloBg');
     const rootStyle = document.documentElement.style;
 
     const defaultStyle = {
-      bgAlignX: 'left',
-      bgLeft: 0,
-      bgBottom: 0,
-      bgWidth: 1120,
-      textInsetLeft: 180,
-      textInsetRight: 40,
-      textInsetTop: 36,
-      textInsetBottom: 36,
-      textAlignX: 'left',
-      textAlignY: 'top',
-      fontSize: 42,
-      fontFamily: '"Arial Narrow", "Trebuchet MS", sans-serif',
-      fontWeight: 900,
-      textColor: '#FFFFFF',
+      bg: {
+        bgAlignX: 'left',
+        bgLeft: 0,
+        bgBottom: 0,
+        bgWidth: 1120,
+      },
+      text: {
+        textInsetLeft: 180,
+        textInsetRight: 40,
+        textInsetTop: 36,
+        textInsetBottom: 36,
+        textAlignX: 'left',
+        textAlignY: 'top',
+        fontSize: 42,
+        fontFamily: '"Arial Narrow", "Trebuchet MS", sans-serif',
+        fontWeight: 900,
+        textColor: '#FFFFFF',
+        textUppercase: true,
+      },
     };
 
     const state = {
@@ -135,27 +142,38 @@
       visible: true,
       zocaloVisible: true,
       zocaloStyle: defaultStyle,
+      zocaloBgVersion: 0,
     };
 
+    function refreshBackgroundImage() {
+      zocaloBgNode.src = `/overlay/zocalo-bg.png?v=${state.zocaloBgVersion || 0}`;
+    }
+
     function normalizeStyle(value) {
-      const next = { ...defaultStyle, ...(value || {}) };
-      const horizontal = ['left', 'center', 'right'].includes(next.textAlignX) ? next.textAlignX : defaultStyle.textAlignX;
-      const vertical = ['top', 'center', 'bottom'].includes(next.textAlignY) ? next.textAlignY : defaultStyle.textAlignY;
+      const nextBg = { ...defaultStyle.bg, ...(value?.bg ?? value ?? {}) };
+      const nextText = { ...defaultStyle.text, ...(value?.text ?? value ?? {}) };
+      const horizontal = ['left', 'center', 'right'].includes(nextText.textAlignX) ? nextText.textAlignX : defaultStyle.text.textAlignX;
+      const vertical = ['top', 'center', 'bottom'].includes(nextText.textAlignY) ? nextText.textAlignY : defaultStyle.text.textAlignY;
       return {
-        bgAlignX: ['left', 'center', 'right'].includes(next.bgAlignX) ? next.bgAlignX : defaultStyle.bgAlignX,
-        bgLeft: Number.isFinite(Number(next.bgLeft)) ? Math.max(-1920, Math.min(1920, Number(next.bgLeft))) : defaultStyle.bgLeft,
-        bgBottom: Number.isFinite(Number(next.bgBottom)) ? Math.max(0, Math.min(1080, Number(next.bgBottom))) : defaultStyle.bgBottom,
-        bgWidth: Number.isFinite(Number(next.bgWidth)) ? Math.max(200, Math.min(1920, Number(next.bgWidth))) : defaultStyle.bgWidth,
-        textInsetLeft: Number.isFinite(Number(next.textInsetLeft)) ? Math.max(0, Math.min(1800, Number(next.textInsetLeft))) : defaultStyle.textInsetLeft,
-        textInsetRight: Number.isFinite(Number(next.textInsetRight)) ? Math.max(0, Math.min(1800, Number(next.textInsetRight))) : defaultStyle.textInsetRight,
-        textInsetTop: Number.isFinite(Number(next.textInsetTop)) ? Math.max(0, Math.min(1000, Number(next.textInsetTop))) : defaultStyle.textInsetTop,
-        textInsetBottom: Number.isFinite(Number(next.textInsetBottom)) ? Math.max(0, Math.min(1000, Number(next.textInsetBottom))) : defaultStyle.textInsetBottom,
-        textAlignX: horizontal,
-        textAlignY: vertical,
-        fontSize: Number.isFinite(Number(next.fontSize)) ? Math.max(12, Math.min(180, Number(next.fontSize))) : defaultStyle.fontSize,
-        fontFamily: String(next.fontFamily || defaultStyle.fontFamily),
-        fontWeight: Number.isFinite(Number(next.fontWeight)) ? Math.max(100, Math.min(900, Number(next.fontWeight))) : defaultStyle.fontWeight,
-        textColor: /^#[0-9a-fA-F]{6}$/.test(String(next.textColor || '').trim()) ? String(next.textColor).trim().toUpperCase() : defaultStyle.textColor,
+        bg: {
+          bgAlignX: ['left', 'center', 'right'].includes(nextBg.bgAlignX) ? nextBg.bgAlignX : defaultStyle.bg.bgAlignX,
+          bgLeft: Number.isFinite(Number(nextBg.bgLeft)) ? Math.max(-1920, Math.min(1920, Number(nextBg.bgLeft))) : defaultStyle.bg.bgLeft,
+          bgBottom: Number.isFinite(Number(nextBg.bgBottom)) ? Math.max(0, Math.min(1080, Number(nextBg.bgBottom))) : defaultStyle.bg.bgBottom,
+          bgWidth: Number.isFinite(Number(nextBg.bgWidth)) ? Math.max(200, Math.min(1920, Number(nextBg.bgWidth))) : defaultStyle.bg.bgWidth,
+        },
+        text: {
+          textInsetLeft: Number.isFinite(Number(nextText.textInsetLeft)) ? Math.max(0, Math.min(1800, Number(nextText.textInsetLeft))) : defaultStyle.text.textInsetLeft,
+          textInsetRight: Number.isFinite(Number(nextText.textInsetRight)) ? Math.max(0, Math.min(1800, Number(nextText.textInsetRight))) : defaultStyle.text.textInsetRight,
+          textInsetTop: Number.isFinite(Number(nextText.textInsetTop)) ? Math.max(0, Math.min(1000, Number(nextText.textInsetTop))) : defaultStyle.text.textInsetTop,
+          textInsetBottom: Number.isFinite(Number(nextText.textInsetBottom)) ? Math.max(0, Math.min(1000, Number(nextText.textInsetBottom))) : defaultStyle.text.textInsetBottom,
+          textAlignX: horizontal,
+          textAlignY: vertical,
+          fontSize: Number.isFinite(Number(nextText.fontSize)) ? Math.max(12, Math.min(180, Number(nextText.fontSize))) : defaultStyle.text.fontSize,
+          fontFamily: String(nextText.fontFamily || defaultStyle.text.fontFamily),
+          fontWeight: Number.isFinite(Number(nextText.fontWeight)) ? Math.max(100, Math.min(900, Number(nextText.fontWeight))) : defaultStyle.text.fontWeight,
+          textColor: /^#[0-9a-fA-F]{6}$/.test(String(nextText.textColor || '').trim()) ? String(nextText.textColor).trim().toUpperCase() : defaultStyle.text.textColor,
+          textUppercase: typeof nextText.textUppercase === 'boolean' ? nextText.textUppercase : defaultStyle.text.textUppercase,
+        },
       };
     }
 
@@ -171,22 +189,23 @@
         center: { anchor: '50%', shift: '-50%' },
         right: { anchor: '100%', shift: '-100%' },
       };
-      const bgAnchor = anchorMap[normalized.bgAlignX] || anchorMap.left;
+      const bgAnchor = anchorMap[normalized.bg.bgAlignX] || anchorMap.left;
       rootStyle.setProperty('--zocalo-anchor-x', bgAnchor.anchor);
       rootStyle.setProperty('--zocalo-shift-x', bgAnchor.shift);
-      rootStyle.setProperty('--zocalo-left', `${normalized.bgLeft}px`);
-      rootStyle.setProperty('--zocalo-bottom', `${normalized.bgBottom}px`);
-      rootStyle.setProperty('--zocalo-width', `${normalized.bgWidth}px`);
-      rootStyle.setProperty('--texto-inset-left', `${normalized.textInsetLeft}px`);
-      rootStyle.setProperty('--texto-inset-right', `${normalized.textInsetRight}px`);
-      rootStyle.setProperty('--texto-inset-top', `${normalized.textInsetTop}px`);
-      rootStyle.setProperty('--texto-inset-bottom', `${normalized.textInsetBottom}px`);
-      rootStyle.setProperty('--texto-align', normalized.textAlignX);
-      rootStyle.setProperty('--texto-justify', justifyMap[normalized.textAlignY]);
-      rootStyle.setProperty('--texto-size', `${normalized.fontSize}px`);
-      rootStyle.setProperty('--texto-font-family', normalized.fontFamily);
-      rootStyle.setProperty('--texto-weight', String(normalized.fontWeight));
-      rootStyle.setProperty('--texto-color', normalized.textColor);
+      rootStyle.setProperty('--zocalo-left', `${normalized.bg.bgLeft}px`);
+      rootStyle.setProperty('--zocalo-bottom', `${normalized.bg.bgBottom}px`);
+      rootStyle.setProperty('--zocalo-width', `${normalized.bg.bgWidth}px`);
+      rootStyle.setProperty('--texto-inset-left', `${normalized.text.textInsetLeft}px`);
+      rootStyle.setProperty('--texto-inset-right', `${normalized.text.textInsetRight}px`);
+      rootStyle.setProperty('--texto-inset-top', `${normalized.text.textInsetTop}px`);
+      rootStyle.setProperty('--texto-inset-bottom', `${normalized.text.textInsetBottom}px`);
+      rootStyle.setProperty('--texto-align', normalized.text.textAlignX);
+      rootStyle.setProperty('--texto-justify', justifyMap[normalized.text.textAlignY]);
+      rootStyle.setProperty('--texto-size', `${normalized.text.fontSize}px`);
+      rootStyle.setProperty('--texto-font-family', normalized.text.fontFamily);
+      rootStyle.setProperty('--texto-weight', String(normalized.text.fontWeight));
+      rootStyle.setProperty('--texto-color', normalized.text.textColor);
+      rootStyle.setProperty('--texto-transform', normalized.text.textUppercase ? 'uppercase' : 'none');
       state.zocaloStyle = normalized;
     }
 
@@ -206,6 +225,8 @@
         state.visible = Boolean(payload.visibility?.text ?? true);
         state.zocaloVisible = Boolean(payload.visibility?.zocalo ?? true);
         state.zocaloStyle = normalizeStyle(payload.zocaloStyle);
+        state.zocaloBgVersion = Number(payload.zocaloBgVersion || 0);
+        refreshBackgroundImage();
         render();
       } catch (error) {
         console.error('Unable to load initial state', error);
@@ -223,6 +244,8 @@
           state.visible = Boolean(message.payload.visibility?.text ?? state.visible);
           state.zocaloVisible = Boolean(message.payload.visibility?.zocalo ?? state.zocaloVisible);
           state.zocaloStyle = normalizeStyle(message.payload.zocaloStyle);
+          state.zocaloBgVersion = Number(message.payload.zocaloBgVersion || state.zocaloBgVersion || 0);
+          refreshBackgroundImage();
           render();
         }
 
@@ -244,6 +267,11 @@
         if (message.type === 'ZOCALO_STYLE') {
           state.zocaloStyle = normalizeStyle(message.payload);
           render();
+        }
+
+        if (message.type === 'ZOCALO_BG_UPDATED') {
+          state.zocaloBgVersion = Number(message.payload.version || Date.now());
+          refreshBackgroundImage();
         }
       });
 

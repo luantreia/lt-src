@@ -146,11 +146,14 @@ const normalizeHexColor = (value, fallback) => {
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized.toUpperCase() : fallback;
 };
 
-const createDefaultZocaloStyle = () => ({
+const createDefaultZocaloBgStyle = () => ({
   bgAlignX: 'left',
   bgLeft: 0,
   bgBottom: 0,
   bgWidth: 1120,
+});
+
+const createDefaultZocaloTextStyle = () => ({
   textInsetLeft: 180,
   textInsetRight: 40,
   textInsetTop: 36,
@@ -160,14 +163,23 @@ const createDefaultZocaloStyle = () => ({
   fontSize: 42,
   fontFamily: zocaloFontOptions[0],
   fontWeight: 900,
-  textColor: '#FFFFFF'
+  textColor: '#FFFFFF',
+  textUppercase: true
 });
 
-const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => ({
+const createDefaultZocaloStyle = () => ({
+  bg: createDefaultZocaloBgStyle(),
+  text: createDefaultZocaloTextStyle()
+});
+
+const normalizeZocaloBgStyle = (value, fallback = createDefaultZocaloBgStyle()) => ({
   bgAlignX: normalizeChoice(value?.bgAlignX, ['left', 'center', 'right'], fallback.bgAlignX),
   bgLeft: clampNumber(value?.bgLeft, -OBS_IMAGE_WIDTH, OBS_IMAGE_WIDTH, fallback.bgLeft),
   bgBottom: clampNumber(value?.bgBottom, 0, OBS_IMAGE_HEIGHT, fallback.bgBottom),
   bgWidth: clampNumber(value?.bgWidth, 200, OBS_IMAGE_WIDTH, fallback.bgWidth),
+});
+
+const normalizeZocaloTextStyle = (value, fallback = createDefaultZocaloTextStyle()) => ({
   textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, fallback.textInsetLeft),
   textInsetRight: clampNumber(value?.textInsetRight, 0, 1800, fallback.textInsetRight),
   textInsetTop: clampNumber(value?.textInsetTop, 0, 1000, fallback.textInsetTop),
@@ -177,7 +189,13 @@ const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => (
   fontSize: clampNumber(value?.fontSize, 12, 180, fallback.fontSize),
   fontFamily: normalizeChoice(value?.fontFamily, zocaloFontOptions, fallback.fontFamily),
   fontWeight: clampNumber(value?.fontWeight, 100, 900, fallback.fontWeight),
-  textColor: normalizeHexColor(value?.textColor, fallback.textColor)
+  textColor: normalizeHexColor(value?.textColor, fallback.textColor),
+  textUppercase: typeof value?.textUppercase === 'boolean' ? value.textUppercase : fallback.textUppercase
+});
+
+const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => ({
+  bg: normalizeZocaloBgStyle(value?.bg ?? value, fallback.bg),
+  text: normalizeZocaloTextStyle(value?.text ?? value, fallback.text)
 });
 
 const readZocaloStyle = () => {
@@ -417,6 +435,7 @@ const state = {
   selectedImageId: null,
   imageTransforms: {},
   zocaloStyle: readZocaloStyle(),
+  zocaloBgVersion: Date.now(),
   presets: savedPresets,
   activeTextPreset: null,
   updatedAt: Date.now()
@@ -450,6 +469,7 @@ const serializeState = () => {
   return {
     zocalo: state.zocalo,
     zocaloStyle: state.zocaloStyle,
+    zocaloBgVersion: state.zocaloBgVersion,
     title: state.title,
     quote: state.quote,
     visibility: state.visibility,
@@ -707,8 +727,14 @@ app.post('/zocalo', (req, res) => {
 
 app.post('/zocalo-style', (req, res) => {
   state.zocaloStyle = normalizeZocaloStyle({
-    ...state.zocaloStyle,
-    ...(req.body ?? {})
+    bg: {
+      ...state.zocaloStyle.bg,
+      ...(req.body?.bg ?? req.body ?? {})
+    },
+    text: {
+      ...state.zocaloStyle.text,
+      ...(req.body?.text ?? req.body ?? {})
+    }
   });
   writeZocaloStyle(state.zocaloStyle);
   touchState();
@@ -890,7 +916,12 @@ app.post('/zocalo-bg', upload.single('image'), async (req, res) => {
     return;
   }
 
-  res.status(200).json({ success: true });
+  state.zocaloBgVersion = Date.now();
+  touchState();
+  broadcast({ type: 'ZOCALO_BG_UPDATED', payload: { version: state.zocaloBgVersion } });
+  syncState();
+
+  res.status(200).json({ success: true, state: serializeState() });
 });
 
 app.post('/upload', upload.single('image'), async (req, res) => {

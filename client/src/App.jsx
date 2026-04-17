@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useSession } from './hooks/useSession.js';
-import { initialImageTransform, normalizeImageTransform } from './utils.js';
+import { defaultZocaloStyle, initialImageTransform, normalizeImageTransform, normalizeZocaloStyle } from './utils.js';
 import { ZocaloPanel } from './components/ZocaloPanel.jsx';
 import { BgPanel } from './components/BgPanel.jsx';
 import { ImagesPanel } from './components/ImagesPanel.jsx';
@@ -12,6 +12,7 @@ function App() {
   const [selectedImageId, setSelectedImageId] = useState(null);
   const [imageVisible, setImageVisible] = useState(false);
   const [imageTransform, setImageTransform] = useState(initialImageTransform);
+  const [zocaloStyle, setZocaloStyle] = useState(defaultZocaloStyle);
   const skipTransformSyncRef = useRef(true);
 
   function applyStateSnapshot(data) {
@@ -21,6 +22,7 @@ function App() {
     setImages(data.images || []);
     setSelectedImageId(data.selectedImage?.id || null);
     setImageVisible(Boolean(data.visibility?.image ?? false));
+    setZocaloStyle(normalizeZocaloStyle(data.zocaloStyle || defaultZocaloStyle));
     skipTransformSyncRef.current = true;
     setImageTransform(normalizeImageTransform(data.selectedImageTransform || initialImageTransform));
   }
@@ -52,6 +54,9 @@ function App() {
         />
 
         <BgPanel
+          texto={texto}
+          zocaloStyle={zocaloStyle}
+          setZocaloStyle={setZocaloStyle}
           requestJson={requestJson}
           setStatus={setStatus}
         />

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff, Send } from 'lucide-react';
+import { Eye, EyeOff, Send, Upload } from 'lucide-react';
 
 const DEFAULT_LOCAL_API_BASE = 'http://localhost:3000';
 
@@ -15,9 +15,13 @@ const WAKE_MAX_RETRY_MS = toPositiveNumber(import.meta.env.VITE_WAKE_MAX_RETRY_M
 
 const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
+const OVERLAY_BASE = normalizeBaseUrl(import.meta.env.VITE_OVERLAY_BASE_URL, API_BASE);
+
 function App() {
   const [texto, setTexto] = useState('');
   const [visible, setVisible] = useState(true);
+  const [bgVersion, setBgVersion] = useState(Date.now());
+  const [uploadingBg, setUploadingBg] = useState(false);
   const [status, setStatus] = useState('Conectando...');
   const [sessionPhase, setSessionPhase] = useState('starting');
   const [loading, setLoading] = useState(true);
@@ -168,6 +172,24 @@ function App() {
     }
   }
 
+  async function handleBgUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingBg(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      await requestJson('/zocalo-bg', { method: 'POST', body: formData });
+      setBgVersion(Date.now());
+      setStatus('Fondo del zocalo actualizado');
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      event.target.value = '';
+      setUploadingBg(false);
+    }
+  }
+
   async function toggle(value) {
     try {
       await requestJson('/text/visibility', {
@@ -249,6 +271,36 @@ function App() {
               <EyeOff size={15} /> Ocultar
             </button>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4">
+          <span className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+            Imagen de fondo del zocalo
+          </span>
+
+          <img
+            key={bgVersion}
+            src={`${OVERLAY_BASE}/overlay/zocalo-bg.png?v=${bgVersion}`}
+            alt="Fondo del zocalo"
+            className="w-full rounded-xl border border-slate-700 object-contain bg-slate-800"
+            style={{ maxHeight: '160px' }}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            onLoad={(e) => { e.currentTarget.style.display = ''; }}
+          />
+
+          <label className="flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-slate-700 bg-slate-800 px-4 py-4 transition hover:border-sky-500 hover:bg-slate-800/80">
+            <Upload size={18} className={uploadingBg ? 'animate-pulse text-sky-400' : 'text-slate-400'} />
+            <span className="text-sm font-bold uppercase tracking-[0.18em] text-slate-300">
+              {uploadingBg ? 'Subiendo...' : 'Subir nuevo fondo'}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploadingBg}
+              onChange={handleBgUpload}
+            />
+          </label>
         </div>
 
       </div>

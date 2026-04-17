@@ -142,7 +142,7 @@
       const vertical = ['top', 'center', 'bottom'].includes(next.textAlignY) ? next.textAlignY : defaultStyle.textAlignY;
       return {
         bgAlignX: ['left', 'center', 'right'].includes(next.bgAlignX) ? next.bgAlignX : defaultStyle.bgAlignX,
-        bgLeft: Number.isFinite(Number(next.bgLeft)) ? Math.max(0, Math.min(1920, Number(next.bgLeft))) : defaultStyle.bgLeft,
+        bgLeft: Number.isFinite(Number(next.bgLeft)) ? Math.max(-1920, Math.min(1920, Number(next.bgLeft))) : defaultStyle.bgLeft,
         bgBottom: Number.isFinite(Number(next.bgBottom)) ? Math.max(0, Math.min(1080, Number(next.bgBottom))) : defaultStyle.bgBottom,
         bgWidth: Number.isFinite(Number(next.bgWidth)) ? Math.max(200, Math.min(1920, Number(next.bgWidth))) : defaultStyle.bgWidth,
         textInsetLeft: Number.isFinite(Number(next.textInsetLeft)) ? Math.max(0, Math.min(1800, Number(next.textInsetLeft))) : defaultStyle.textInsetLeft,

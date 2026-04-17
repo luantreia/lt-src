@@ -159,7 +159,7 @@ const createDefaultZocaloStyle = () => ({
 
 const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => ({
   bgAlignX: normalizeChoice(value?.bgAlignX, ['left', 'center', 'right'], fallback.bgAlignX),
-  bgLeft: clampNumber(value?.bgLeft, 0, OBS_IMAGE_WIDTH, fallback.bgLeft),
+  bgLeft: clampNumber(value?.bgLeft, -OBS_IMAGE_WIDTH, OBS_IMAGE_WIDTH, fallback.bgLeft),
   bgBottom: clampNumber(value?.bgBottom, 0, OBS_IMAGE_HEIGHT, fallback.bgBottom),
   bgWidth: clampNumber(value?.bgWidth, 200, OBS_IMAGE_WIDTH, fallback.bgWidth),
   textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, fallback.textInsetLeft),

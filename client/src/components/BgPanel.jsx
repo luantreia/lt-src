@@ -150,6 +150,12 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
     center: 'center',
     bottom: 'flex-end',
   }[draftStyle.textAlignY];
+  const previewAnchorMap = {
+    left: { left: '0%', translateX: '0%' },
+    center: { left: '50%', translateX: '-50%' },
+    right: { left: '100%', translateX: '-100%' },
+  };
+  const previewAnchor = previewAnchorMap[draftStyle.bgAlignX] || previewAnchorMap.left;
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4">
@@ -170,9 +176,10 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
             <div
               className="absolute"
               style={{
-                left: `${draftStyle.bgLeft}px`,
+                left: previewAnchor.left,
                 bottom: `${draftStyle.bgBottom}px`,
                 width: `${draftStyle.bgWidth}px`,
+                transform: `translateX(calc(${previewAnchor.translateX} + ${draftStyle.bgLeft}px))`,
               }}
             >
               <div className="relative">
@@ -242,7 +249,7 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
             <div className="space-y-4">
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Fondo</span>
               <SegmentedControl label="Anclaje horizontal" options={bgAlignXOptions} value={draftStyle.bgAlignX} onChange={(value) => updateStyle('bgAlignX', value)} />
-              <RangeField label="Offset horizontal" min={0} max={1920} value={draftStyle.bgLeft} onChange={(value) => updateStyle('bgLeft', value)} />
+              <RangeField label="Offset horizontal" min={-960} max={960} value={draftStyle.bgLeft} onChange={(value) => updateStyle('bgLeft', value)} />
               <RangeField label="Margen inferior" min={0} max={1080} value={draftStyle.bgBottom} onChange={(value) => updateStyle('bgBottom', value)} />
               <RangeField label="Ancho del fondo" min={200} max={1920} value={draftStyle.bgWidth} onChange={(value) => updateStyle('bgWidth', value)} />
             </div>

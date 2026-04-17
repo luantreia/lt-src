@@ -46,7 +46,7 @@ export const defaultZocaloStyle = {
 
 export const normalizeZocaloStyle = (value) => ({
   bgAlignX: normalizeChoice(value?.bgAlignX, ['left', 'center', 'right'], defaultZocaloStyle.bgAlignX),
-  bgLeft: clampNumber(value?.bgLeft, 0, 1920, defaultZocaloStyle.bgLeft),
+  bgLeft: clampNumber(value?.bgLeft, -1920, 1920, defaultZocaloStyle.bgLeft),
   bgBottom: clampNumber(value?.bgBottom, 0, 1080, defaultZocaloStyle.bgBottom),
   bgWidth: clampNumber(value?.bgWidth, 200, 1920, defaultZocaloStyle.bgWidth),
   textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, defaultZocaloStyle.textInsetLeft),

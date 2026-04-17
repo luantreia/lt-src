@@ -8,19 +8,17 @@
     :root {
       color-scheme: only light;
 
-      /* ── Posición del zócalo en el canvas 1920×1080 ── */
       --zocalo-left: 0px;
       --zocalo-bottom: 0px;
-
-      /* ── Posición del texto dentro del zócalo ──
-         Ajustá estos valores para que el texto caiga
-         exactamente sobre el área de texto de tu diseño. */
-      --texto-left: 180px;
-      --texto-top: 36px;
-      --texto-width: 900px;
-
-      /* ── Tipografía ── */
+      --zocalo-width: 1120px;
+      --texto-inset-left: 180px;
+      --texto-inset-right: 40px;
+      --texto-inset-top: 36px;
+      --texto-inset-bottom: 36px;
+      --texto-align: left;
+      --texto-justify: flex-start;
       --texto-size: 42px;
+      --texto-font-family: "Arial Narrow", "Trebuchet MS", sans-serif;
       --texto-weight: 900;
       --texto-color: #ffffff;
       --texto-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
@@ -49,6 +47,7 @@
       position: absolute;
       left: var(--zocalo-left);
       bottom: var(--zocalo-bottom);
+      width: var(--zocalo-width);
       opacity: 0;
       transform: translate3d(-24px, 16px, 0);
       transform-origin: left bottom;
@@ -65,17 +64,24 @@
        Reemplazá overlay/zocalo-bg.png con tu archivo. */
     .zocalo-bg {
       display: block;
-      max-width: 100%;
+      width: 100%;
+      height: auto;
     }
 
     /* Texto superpuesto encima de la imagen */
     .texto-overlay {
       position: absolute;
-      left: var(--texto-left);
-      top: var(--texto-top);
-      width: var(--texto-width);
+      left: var(--texto-inset-left);
+      right: var(--texto-inset-right);
+      top: var(--texto-inset-top);
+      bottom: var(--texto-inset-bottom);
+      display: flex;
+      flex-direction: column;
+      justify-content: var(--texto-justify);
+      text-align: var(--texto-align);
       color: var(--texto-color);
       font-size: var(--texto-size);
+      font-family: var(--texto-font-family);
       font-weight: var(--texto-weight);
       line-height: 1.1;
       letter-spacing: var(--texto-tracking);
@@ -103,16 +109,76 @@
 
     const lowerThird = document.getElementById('lowerThird');
     const textoNode = document.getElementById('texto');
+    const rootStyle = document.documentElement.style;
+
+    const defaultStyle = {
+      bgLeft: 0,
+      bgBottom: 0,
+      bgWidth: 1120,
+      textInsetLeft: 180,
+      textInsetRight: 40,
+      textInsetTop: 36,
+      textInsetBottom: 36,
+      textAlignX: 'left',
+      textAlignY: 'top',
+      fontSize: 42,
+      fontFamily: '"Arial Narrow", "Trebuchet MS", sans-serif',
+      fontWeight: 900,
+    };
 
     const state = {
       nombre: '',
       visible: true,
       zocaloVisible: true,
+      zocaloStyle: defaultStyle,
     };
+
+    function normalizeStyle(value) {
+      const next = { ...defaultStyle, ...(value || {}) };
+      const horizontal = ['left', 'center', 'right'].includes(next.textAlignX) ? next.textAlignX : defaultStyle.textAlignX;
+      const vertical = ['top', 'center', 'bottom'].includes(next.textAlignY) ? next.textAlignY : defaultStyle.textAlignY;
+      return {
+        bgLeft: Number.isFinite(Number(next.bgLeft)) ? Math.max(0, Math.min(1920, Number(next.bgLeft))) : defaultStyle.bgLeft,
+        bgBottom: Number.isFinite(Number(next.bgBottom)) ? Math.max(0, Math.min(1080, Number(next.bgBottom))) : defaultStyle.bgBottom,
+        bgWidth: Number.isFinite(Number(next.bgWidth)) ? Math.max(200, Math.min(1920, Number(next.bgWidth))) : defaultStyle.bgWidth,
+        textInsetLeft: Number.isFinite(Number(next.textInsetLeft)) ? Math.max(0, Math.min(1800, Number(next.textInsetLeft))) : defaultStyle.textInsetLeft,
+        textInsetRight: Number.isFinite(Number(next.textInsetRight)) ? Math.max(0, Math.min(1800, Number(next.textInsetRight))) : defaultStyle.textInsetRight,
+        textInsetTop: Number.isFinite(Number(next.textInsetTop)) ? Math.max(0, Math.min(1000, Number(next.textInsetTop))) : defaultStyle.textInsetTop,
+        textInsetBottom: Number.isFinite(Number(next.textInsetBottom)) ? Math.max(0, Math.min(1000, Number(next.textInsetBottom))) : defaultStyle.textInsetBottom,
+        textAlignX: horizontal,
+        textAlignY: vertical,
+        fontSize: Number.isFinite(Number(next.fontSize)) ? Math.max(12, Math.min(180, Number(next.fontSize))) : defaultStyle.fontSize,
+        fontFamily: String(next.fontFamily || defaultStyle.fontFamily),
+        fontWeight: Number.isFinite(Number(next.fontWeight)) ? Math.max(100, Math.min(900, Number(next.fontWeight))) : defaultStyle.fontWeight,
+      };
+    }
+
+    function applyStyle(style) {
+      const normalized = normalizeStyle(style);
+      const justifyMap = {
+        top: 'flex-start',
+        center: 'center',
+        bottom: 'flex-end',
+      };
+      rootStyle.setProperty('--zocalo-left', `${normalized.bgLeft}px`);
+      rootStyle.setProperty('--zocalo-bottom', `${normalized.bgBottom}px`);
+      rootStyle.setProperty('--zocalo-width', `${normalized.bgWidth}px`);
+      rootStyle.setProperty('--texto-inset-left', `${normalized.textInsetLeft}px`);
+      rootStyle.setProperty('--texto-inset-right', `${normalized.textInsetRight}px`);
+      rootStyle.setProperty('--texto-inset-top', `${normalized.textInsetTop}px`);
+      rootStyle.setProperty('--texto-inset-bottom', `${normalized.textInsetBottom}px`);
+      rootStyle.setProperty('--texto-align', normalized.textAlignX);
+      rootStyle.setProperty('--texto-justify', justifyMap[normalized.textAlignY]);
+      rootStyle.setProperty('--texto-size', `${normalized.fontSize}px`);
+      rootStyle.setProperty('--texto-font-family', normalized.fontFamily);
+      rootStyle.setProperty('--texto-weight', String(normalized.fontWeight));
+      state.zocaloStyle = normalized;
+    }
 
     function render() {
       const hasContent = Boolean(state.nombre);
       const show = state.visible && state.zocaloVisible && hasContent;
+      applyStyle(state.zocaloStyle);
       textoNode.textContent = state.nombre;
       lowerThird.classList.toggle('visible', show);
     }
@@ -124,6 +190,7 @@
         state.nombre = payload.zocalo?.nombre || '';
         state.visible = Boolean(payload.visibility?.text ?? true);
         state.zocaloVisible = Boolean(payload.visibility?.zocalo ?? true);
+        state.zocaloStyle = normalizeStyle(payload.zocaloStyle);
         render();
       } catch (error) {
         console.error('Unable to load initial state', error);
@@ -140,6 +207,7 @@
           state.nombre = message.payload.zocalo?.nombre || '';
           state.visible = Boolean(message.payload.visibility?.text ?? state.visible);
           state.zocaloVisible = Boolean(message.payload.visibility?.zocalo ?? state.zocaloVisible);
+          state.zocaloStyle = normalizeStyle(message.payload.zocaloStyle);
           render();
         }
 
@@ -155,6 +223,11 @@
 
         if (message.type === 'TEXT_LAYER_VISIBILITY' && message.payload.layer === 'zocalo') {
           state.zocaloVisible = Boolean(message.payload.visible);
+          render();
+        }
+
+        if (message.type === 'ZOCALO_STYLE') {
+          state.zocaloStyle = normalizeStyle(message.payload);
           render();
         }
       });

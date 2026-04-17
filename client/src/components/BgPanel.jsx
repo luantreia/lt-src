@@ -19,6 +19,12 @@ const alignYOptions = [
   { value: 'bottom', label: 'Abajo' },
 ];
 
+const bgAlignXOptions = [
+  { value: 'left', label: 'Izq' },
+  { value: 'center', label: 'Centro' },
+  { value: 'right', label: 'Der' },
+];
+
 const fontWeightOptions = [400, 500, 600, 700, 800, 900];
 
 const styleSignature = (value) => JSON.stringify(normalizeZocaloStyle(value));
@@ -235,7 +241,8 @@ export function BgPanel({ texto, zocaloStyle, setZocaloStyle, requestJson, setSt
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-4">
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Fondo</span>
-              <RangeField label="Margen izquierdo" min={0} max={1920} value={draftStyle.bgLeft} onChange={(value) => updateStyle('bgLeft', value)} />
+              <SegmentedControl label="Anclaje horizontal" options={bgAlignXOptions} value={draftStyle.bgAlignX} onChange={(value) => updateStyle('bgAlignX', value)} />
+              <RangeField label="Offset horizontal" min={0} max={1920} value={draftStyle.bgLeft} onChange={(value) => updateStyle('bgLeft', value)} />
               <RangeField label="Margen inferior" min={0} max={1080} value={draftStyle.bgBottom} onChange={(value) => updateStyle('bgBottom', value)} />
               <RangeField label="Ancho del fondo" min={200} max={1920} value={draftStyle.bgWidth} onChange={(value) => updateStyle('bgWidth', value)} />
             </div>

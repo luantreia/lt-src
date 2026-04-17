@@ -29,6 +29,7 @@ const normalizeChoice = (value, choices, fallback) => (
 export const ZOCALO_FONT_OPTIONS = zocaloFontOptions;
 
 export const defaultZocaloStyle = {
+  bgAlignX: 'left',
   bgLeft: 0,
   bgBottom: 0,
   bgWidth: 1120,
@@ -44,6 +45,7 @@ export const defaultZocaloStyle = {
 };
 
 export const normalizeZocaloStyle = (value) => ({
+  bgAlignX: normalizeChoice(value?.bgAlignX, ['left', 'center', 'right'], defaultZocaloStyle.bgAlignX),
   bgLeft: clampNumber(value?.bgLeft, 0, 1920, defaultZocaloStyle.bgLeft),
   bgBottom: clampNumber(value?.bgBottom, 0, 1080, defaultZocaloStyle.bgBottom),
   bgWidth: clampNumber(value?.bgWidth, 200, 1920, defaultZocaloStyle.bgWidth),

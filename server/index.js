@@ -789,6 +789,24 @@ app.delete('/image/:imageId', async (req, res) => {
   });
 });
 
+app.post('/zocalo-bg', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: 'No file uploaded' });
+    return;
+  }
+
+  const destPath = path.join(overlayDir, 'zocalo-bg.png');
+
+  try {
+    await sharp(req.file.buffer).png().toFile(destPath);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al procesar la imagen' });
+    return;
+  }
+
+  res.status(200).json({ success: true });
+});
+
 app.post('/upload', upload.single('image'), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: 'No file uploaded' });

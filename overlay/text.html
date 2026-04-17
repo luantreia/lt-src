@@ -13,13 +13,10 @@
       --zocalo-shift-x: 0%;
       --zocalo-bottom: 0px;
       --zocalo-width: 1120px;
-      --texto-anchor-x: 0%;
-      --texto-shift-x: 0%;
-      --texto-offset-x: 180px;
-      --texto-anchor-y: 0%;
-      --texto-shift-y: 0%;
-      --texto-offset-y: 36px;
-      --texto-width: 900px;
+      --texto-inset-left: 180px;
+      --texto-inset-right: 40px;
+      --texto-inset-top: 36px;
+      --texto-inset-bottom: 36px;
       --texto-align: left;
       --texto-justify: flex-start;
       --texto-size: 42px;
@@ -77,11 +74,10 @@
     /* Texto superpuesto encima de la imagen */
     .texto-overlay {
       position: absolute;
-      left: var(--texto-anchor-x);
-      top: var(--texto-anchor-y);
-      width: min(var(--texto-width), calc(100% - 24px));
-      max-width: calc(100% - 24px);
-      transform: translate3d(calc(var(--texto-shift-x) + var(--texto-offset-x)), calc(var(--texto-shift-y) + var(--texto-offset-y)), 0);
+      left: var(--texto-inset-left);
+      right: var(--texto-inset-right);
+      top: var(--texto-inset-top);
+      bottom: var(--texto-inset-bottom);
       display: flex;
       flex-direction: column;
       justify-content: var(--texto-justify);
@@ -129,11 +125,10 @@
         bgWidth: 1120,
       },
       text: {
-        textAnchorX: 'left',
-        textAnchorY: 'top',
-        textOffsetX: 180,
-        textOffsetY: 36,
-        textWidth: 900,
+        textInsetLeft: 180,
+        textInsetRight: 40,
+        textInsetTop: 36,
+        textInsetBottom: 36,
         textAlignX: 'left',
         textAlignY: 'top',
         fontSize: 42,
@@ -181,11 +176,10 @@
           bgWidth: Number.isFinite(Number(nextBg.bgWidth)) ? Math.max(200, Math.min(1920, Number(nextBg.bgWidth))) : defaultStyle.bg.bgWidth,
         },
         text: {
-          textAnchorX: ['left', 'center', 'right'].includes(nextText.textAnchorX) ? nextText.textAnchorX : defaultStyle.text.textAnchorX,
-          textAnchorY: ['top', 'center', 'bottom'].includes(nextText.textAnchorY) ? nextText.textAnchorY : defaultStyle.text.textAnchorY,
-          textOffsetX: Number.isFinite(Number(nextText.textOffsetX ?? nextText.textInsetLeft)) ? Math.max(-1800, Math.min(1800, Number(nextText.textOffsetX ?? nextText.textInsetLeft))) : defaultStyle.text.textOffsetX,
-          textOffsetY: Number.isFinite(Number(nextText.textOffsetY ?? nextText.textInsetTop)) ? Math.max(-1000, Math.min(1000, Number(nextText.textOffsetY ?? nextText.textInsetTop))) : defaultStyle.text.textOffsetY,
-          textWidth: Number.isFinite(Number(nextText.textWidth ?? ((nextBg.bgWidth || defaultStyle.bg.bgWidth) - (Number(nextText.textInsetLeft) || 180) - (Number(nextText.textInsetRight) || 40)))) ? Math.max(120, Math.min(1800, Number(nextText.textWidth ?? ((nextBg.bgWidth || defaultStyle.bg.bgWidth) - (Number(nextText.textInsetLeft) || 180) - (Number(nextText.textInsetRight) || 40))))) : defaultStyle.text.textWidth,
+          textInsetLeft: Number.isFinite(Number(nextText.textInsetLeft)) ? Math.max(0, Math.min(1800, Number(nextText.textInsetLeft))) : defaultStyle.text.textInsetLeft,
+          textInsetRight: Number.isFinite(Number(nextText.textInsetRight)) ? Math.max(0, Math.min(1800, Number(nextText.textInsetRight))) : defaultStyle.text.textInsetRight,
+          textInsetTop: Number.isFinite(Number(nextText.textInsetTop)) ? Math.max(0, Math.min(1000, Number(nextText.textInsetTop))) : defaultStyle.text.textInsetTop,
+          textInsetBottom: Number.isFinite(Number(nextText.textInsetBottom)) ? Math.max(0, Math.min(1000, Number(nextText.textInsetBottom))) : defaultStyle.text.textInsetBottom,
           textAlignX: horizontal,
           textAlignY: vertical,
           fontSize: Number.isFinite(Number(nextText.fontSize)) ? Math.max(12, Math.min(180, Number(nextText.fontSize))) : defaultStyle.text.fontSize,
@@ -204,36 +198,21 @@
         center: 'center',
         bottom: 'flex-end',
       };
-      const textAnchorMap = {
-        left: { anchor: '0%', shift: '0%' },
-        center: { anchor: '50%', shift: '-50%' },
-        right: { anchor: '100%', shift: '-100%' },
-      };
-      const textVerticalAnchorMap = {
-        top: { anchor: '0%', shift: '0%' },
-        center: { anchor: '50%', shift: '-50%' },
-        bottom: { anchor: '100%', shift: '-100%' },
-      };
       const anchorMap = {
         left: { anchor: '0%', shift: '0%' },
         center: { anchor: '50%', shift: '-50%' },
         right: { anchor: '100%', shift: '-100%' },
       };
       const bgAnchor = anchorMap[normalized.bg.bgAlignX] || anchorMap.left;
-      const textAnchor = textAnchorMap[normalized.text.textAnchorX] || textAnchorMap.left;
-      const textVerticalAnchor = textVerticalAnchorMap[normalized.text.textAnchorY] || textVerticalAnchorMap.top;
       rootStyle.setProperty('--zocalo-anchor-x', bgAnchor.anchor);
       rootStyle.setProperty('--zocalo-shift-x', bgAnchor.shift);
       rootStyle.setProperty('--zocalo-left', `${normalized.bg.bgLeft}px`);
       rootStyle.setProperty('--zocalo-bottom', `${normalized.bg.bgBottom}px`);
       rootStyle.setProperty('--zocalo-width', `${normalized.bg.bgWidth}px`);
-      rootStyle.setProperty('--texto-anchor-x', textAnchor.anchor);
-      rootStyle.setProperty('--texto-shift-x', textAnchor.shift);
-      rootStyle.setProperty('--texto-offset-x', `${normalized.text.textOffsetX}px`);
-      rootStyle.setProperty('--texto-anchor-y', textVerticalAnchor.anchor);
-      rootStyle.setProperty('--texto-shift-y', textVerticalAnchor.shift);
-      rootStyle.setProperty('--texto-offset-y', `${normalized.text.textOffsetY}px`);
-      rootStyle.setProperty('--texto-width', `${normalized.text.textWidth}px`);
+      rootStyle.setProperty('--texto-inset-left', `${normalized.text.textInsetLeft}px`);
+      rootStyle.setProperty('--texto-inset-right', `${normalized.text.textInsetRight}px`);
+      rootStyle.setProperty('--texto-inset-top', `${normalized.text.textInsetTop}px`);
+      rootStyle.setProperty('--texto-inset-bottom', `${normalized.text.textInsetBottom}px`);
       rootStyle.setProperty('--texto-align', normalized.text.textAlignX);
       rootStyle.setProperty('--texto-justify', justifyMap[normalized.text.textAlignY]);
       rootStyle.setProperty('--texto-size', `${normalized.text.fontSize}px`);

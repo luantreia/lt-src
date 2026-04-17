@@ -9,19 +9,11 @@ import {
 } from '../utils.js';
 
 const styleSignature = (value) => JSON.stringify(normalizeZocaloStyle(value));
-const bgSignature = (value) => JSON.stringify(normalizeZocaloBgStyle(value));
-const textSignature = (value) => JSON.stringify(normalizeZocaloTextStyle(value));
 
 export function useZocaloStyle({ requestJson, setStatus }) {
   const [zocaloStyle, setZocaloStyleState] = useState(defaultZocaloStyle);
-  const [syncedStyle, setSyncedStyle] = useState(defaultZocaloStyle);
-  const [isSyncing, setIsSyncing] = useState(false);
   const syncedStyleRef = useRef(styleSignature(defaultZocaloStyle));
   const skipSyncRef = useRef(false);
-
-  const normalizedStyle = normalizeZocaloStyle(zocaloStyle);
-  const bgDirty = bgSignature(normalizedStyle.bg) !== bgSignature(syncedStyle.bg);
-  const textDirty = textSignature(normalizedStyle.text) !== textSignature(syncedStyle.text);
 
   useEffect(() => {
     if (skipSyncRef.current) {
@@ -29,13 +21,12 @@ export function useZocaloStyle({ requestJson, setStatus }) {
       return undefined;
     }
 
-    const normalized = normalizedStyle;
+    const normalized = normalizeZocaloStyle(zocaloStyle);
     if (styleSignature(normalized) === syncedStyleRef.current) {
       return undefined;
     }
 
     const timerId = window.setTimeout(async () => {
-      setIsSyncing(true);
       try {
         const data = await requestJson('/zocalo-style', {
           method: 'POST',
@@ -44,23 +35,19 @@ export function useZocaloStyle({ requestJson, setStatus }) {
         });
         const nextStyle = normalizeZocaloStyle(data.state?.zocaloStyle || data.zocaloStyle || normalized);
         syncedStyleRef.current = styleSignature(nextStyle);
-        setSyncedStyle(nextStyle);
         skipSyncRef.current = true;
         setZocaloStyleState(nextStyle);
       } catch (error) {
         setStatus(error.message);
-      } finally {
-        setIsSyncing(false);
       }
     }, 140);
 
     return () => window.clearTimeout(timerId);
-  }, [normalizedStyle, requestJson, setStatus]);
+  }, [requestJson, setStatus, zocaloStyle]);
 
   function applyRemoteStyle(value) {
     const normalized = normalizeZocaloStyle(value || defaultZocaloStyle);
     syncedStyleRef.current = styleSignature(normalized);
-    setSyncedStyle(normalized);
     skipSyncRef.current = true;
     setZocaloStyleState(normalized);
   }
@@ -91,11 +78,8 @@ export function useZocaloStyle({ requestJson, setStatus }) {
 
   return {
     zocaloStyle,
-    bgStyle: normalizedStyle.bg,
-    textStyle: normalizedStyle.text,
-    bgDirty,
-    textDirty,
-    isSyncing,
+    bgStyle: normalizeZocaloBgStyle(zocaloStyle.bg),
+    textStyle: normalizeZocaloTextStyle(zocaloStyle.text),
     applyRemoteStyle,
     updateBgStyle,
     updateTextStyle,

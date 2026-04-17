@@ -18,22 +18,7 @@ const alignYOptions = [
 
 const fontWeightOptions = [400, 500, 600, 700, 800, 900];
 
-function StatusBadge({ tone = 'neutral', children }) {
-  const toneClass = {
-    neutral: 'border-slate-700 bg-slate-800 text-slate-300',
-    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-    warning: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-    info: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
-  }[tone] || 'border-slate-700 bg-slate-800 text-slate-300';
-
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${toneClass}`}>
-      {children}
-    </span>
-  );
-}
-
-export function ZocaloPanel({ texto, setTexto, onAirTexto, textDraftDirty, textStyleDirty, styleSyncing, visible, setVisible, textStyle, updateTextStyle, resetTextStyle, markTextAsOnAir, requestJson, setStatus }) {
+export function ZocaloPanel({ texto, setTexto, visible, setVisible, textStyle, updateTextStyle, resetTextStyle, requestJson, setStatus }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   async function handleSubmit(event) {
@@ -44,7 +29,6 @@ export function ZocaloPanel({ texto, setTexto, onAirTexto, textDraftDirty, textS
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: texto, partido: '', rol: '' }),
       });
-      markTextAsOnAir(texto);
       setStatus('Texto enviado al aire');
     } catch (error) {
       setStatus(error.message);
@@ -74,15 +58,6 @@ export function ZocaloPanel({ texto, setTexto, onAirTexto, textDraftDirty, textS
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <StatusBadge tone={textDraftDirty ? 'warning' : 'success'}>
-          {textDraftDirty ? 'Borrador local' : 'Texto al aire'}
-        </StatusBadge>
-        <StatusBadge tone={styleSyncing ? 'info' : textStyleDirty ? 'warning' : 'success'}>
-          {styleSyncing ? 'Sincronizando ajustes' : textStyleDirty ? 'Ajustes locales' : 'Ajustes sincronizados'}
-        </StatusBadge>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-3">
         <textarea
           value={texto}
@@ -92,19 +67,9 @@ export function ZocaloPanel({ texto, setTexto, onAirTexto, textDraftDirty, textS
           placeholder="Texto al aire..."
         />
         <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 font-bold uppercase tracking-[0.18em] text-white transition hover:bg-sky-500">
-          <Send size={16} /> {textDraftDirty ? 'Enviar cambios al aire' : 'Reenviar al aire'}
+          <Send size={16} /> Enviar al aire
         </button>
       </form>
-
-      <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm">
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Al aire ahora</span>
-          {textDraftDirty && <StatusBadge tone="warning">Todavia no enviado</StatusBadge>}
-        </div>
-        <p className="mt-2 min-h-6 whitespace-pre-wrap break-words text-slate-200">
-          {onAirTexto || <span className="text-slate-500">Sin texto al aire</span>}
-        </p>
-      </div>
 
       <div className="flex gap-3">
         <button type="button" onClick={() => toggle(true)} disabled={visible}
@@ -144,16 +109,13 @@ export function ZocaloPanel({ texto, setTexto, onAirTexto, textDraftDirty, textS
           <div className="mt-5 space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-4">
-                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Ubicacion</span>
-                <SegmentedControl label="Anclaje horizontal" options={alignXOptions} value={textStyle.textAnchorX} onChange={(value) => updateTextStyle({ textAnchorX: value })} />
-                <SegmentedControl label="Anclaje vertical" options={alignYOptions} value={textStyle.textAnchorY} onChange={(value) => updateTextStyle({ textAnchorY: value })} />
-                <RangeField label="Offset horizontal" min={-1200} max={1200} value={textStyle.textOffsetX} onChange={(value) => updateTextStyle({ textOffsetX: value })} />
-                <RangeField label="Offset vertical" min={-500} max={500} value={textStyle.textOffsetY} onChange={(value) => updateTextStyle({ textOffsetY: value })} />
-                <RangeField label="Ancho del bloque" min={120} max={1800} value={textStyle.textWidth} onChange={(value) => updateTextStyle({ textWidth: value })} />
+                <RangeField label="Margen interno izquierdo" min={0} max={1200} value={textStyle.textInsetLeft} onChange={(value) => updateTextStyle({ textInsetLeft: value })} />
+                <RangeField label="Margen interno derecho" min={0} max={1200} value={textStyle.textInsetRight} onChange={(value) => updateTextStyle({ textInsetRight: value })} />
+                <RangeField label="Margen interno superior" min={0} max={600} value={textStyle.textInsetTop} onChange={(value) => updateTextStyle({ textInsetTop: value })} />
+                <RangeField label="Margen interno inferior" min={0} max={600} value={textStyle.textInsetBottom} onChange={(value) => updateTextStyle({ textInsetBottom: value })} />
               </div>
 
               <div className="space-y-4">
-                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Contenido</span>
                 <SegmentedControl label="Alineacion horizontal" options={alignXOptions} value={textStyle.textAlignX} onChange={(value) => updateTextStyle({ textAlignX: value })} />
                 <SegmentedControl label="Alineacion vertical" options={alignYOptions} value={textStyle.textAlignY} onChange={(value) => updateTextStyle({ textAlignY: value })} />
                 <RangeField label="Tamano de fuente" min={12} max={180} value={textStyle.fontSize} onChange={(value) => updateTextStyle({ fontSize: value })} />

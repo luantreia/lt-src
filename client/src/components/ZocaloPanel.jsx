@@ -18,7 +18,22 @@ const alignYOptions = [
 
 const fontWeightOptions = [400, 500, 600, 700, 800, 900];
 
-export function ZocaloPanel({ texto, setTexto, visible, setVisible, textStyle, updateTextStyle, resetTextStyle, requestJson, setStatus }) {
+function StatusBadge({ tone = 'neutral', children }) {
+  const toneClass = {
+    neutral: 'border-slate-700 bg-slate-800 text-slate-300',
+    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+    warning: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+    info: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
+  }[tone] || 'border-slate-700 bg-slate-800 text-slate-300';
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${toneClass}`}>
+      {children}
+    </span>
+  );
+}
+
+export function ZocaloPanel({ texto, setTexto, onAirTexto, textDraftDirty, textStyleDirty, styleSyncing, visible, setVisible, textStyle, updateTextStyle, resetTextStyle, markTextAsOnAir, requestJson, setStatus }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   async function handleSubmit(event) {
@@ -29,6 +44,7 @@ export function ZocaloPanel({ texto, setTexto, visible, setVisible, textStyle, u
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: texto, partido: '', rol: '' }),
       });
+      markTextAsOnAir(texto);
       setStatus('Texto enviado al aire');
     } catch (error) {
       setStatus(error.message);
@@ -58,6 +74,15 @@ export function ZocaloPanel({ texto, setTexto, visible, setVisible, textStyle, u
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <StatusBadge tone={textDraftDirty ? 'warning' : 'success'}>
+          {textDraftDirty ? 'Borrador local' : 'Texto al aire'}
+        </StatusBadge>
+        <StatusBadge tone={styleSyncing ? 'info' : textStyleDirty ? 'warning' : 'success'}>
+          {styleSyncing ? 'Sincronizando ajustes' : textStyleDirty ? 'Ajustes locales' : 'Ajustes sincronizados'}
+        </StatusBadge>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-3">
         <textarea
           value={texto}
@@ -67,9 +92,19 @@ export function ZocaloPanel({ texto, setTexto, visible, setVisible, textStyle, u
           placeholder="Texto al aire..."
         />
         <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 font-bold uppercase tracking-[0.18em] text-white transition hover:bg-sky-500">
-          <Send size={16} /> Enviar al aire
+          <Send size={16} /> {textDraftDirty ? 'Enviar cambios al aire' : 'Reenviar al aire'}
         </button>
       </form>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Al aire ahora</span>
+          {textDraftDirty && <StatusBadge tone="warning">Todavia no enviado</StatusBadge>}
+        </div>
+        <p className="mt-2 min-h-6 whitespace-pre-wrap break-words text-slate-200">
+          {onAirTexto || <span className="text-slate-500">Sin texto al aire</span>}
+        </p>
+      </div>
 
       <div className="flex gap-3">
         <button type="button" onClick={() => toggle(true)} disabled={visible}

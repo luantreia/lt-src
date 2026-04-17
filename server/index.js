@@ -16,6 +16,8 @@ const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : __di
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 const uploadsDir = path.join(dataDir, 'uploads');
 const overlayDir = path.resolve(__dirname, '../overlay');
+const zocaloBgPath = path.join(dataDir, 'zocalo-bg.png');
+const defaultZocaloBgPath = path.join(overlayDir, 'zocalo-bg.png');
 const imageMetadataPath = path.join(dataDir, 'image-metadata.json');
 const textPresetsPath = path.join(dataDir, 'text-presets.json');
 const zocaloStylePath = path.join(dataDir, 'zocalo-style.json');
@@ -27,11 +29,23 @@ const IMAGE_MAX_OFFSET_X = OBS_IMAGE_WIDTH;
 const IMAGE_MAX_OFFSET_Y = OBS_IMAGE_HEIGHT;
 const textLayers = ['zocalo', 'title', 'quote'];
 
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
+app.get('/overlay/zocalo-bg.png', (req, res) => {
+  const sourcePath = fs.existsSync(zocaloBgPath) ? zocaloBgPath : defaultZocaloBgPath;
+  if (!fs.existsSync(sourcePath)) {
+    res.status(404).end();
+    return;
+  }
+  res.sendFile(sourcePath);
+});
 app.use('/overlay', express.static(overlayDir));
 
 const readImageMetadata = () => {
@@ -48,6 +62,14 @@ const readImageMetadata = () => {
 
 const writeImageMetadata = (metadata) => {
   fs.writeFileSync(imageMetadataPath, JSON.stringify(metadata, null, 2));
+};
+
+const getZocaloBgVersion = () => {
+  const sourcePath = fs.existsSync(zocaloBgPath) ? zocaloBgPath : defaultZocaloBgPath;
+  if (!fs.existsSync(sourcePath)) {
+    return 0;
+  }
+  return fs.statSync(sourcePath).mtimeMs;
 };
 
 const imageMetadata = readImageMetadata();
@@ -435,7 +457,7 @@ const state = {
   selectedImageId: null,
   imageTransforms: {},
   zocaloStyle: readZocaloStyle(),
-  zocaloBgVersion: Date.now(),
+  zocaloBgVersion: getZocaloBgVersion(),
   presets: savedPresets,
   activeTextPreset: null,
   updatedAt: Date.now()
@@ -907,7 +929,7 @@ app.post('/zocalo-bg', upload.single('image'), async (req, res) => {
     return;
   }
 
-  const destPath = path.join(overlayDir, 'zocalo-bg.png');
+  const destPath = zocaloBgPath;
 
   try {
     await sharp(req.file.buffer).png().toFile(destPath);

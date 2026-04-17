@@ -69,6 +69,7 @@ function App() {
         <BgPanel
           texto={texto}
           bgStyle={bgStyle}
+          textStyle={textStyle}
           updateBgStyle={updateBgStyle}
           resetBgStyle={resetBgStyle}
           requestJson={requestJson}

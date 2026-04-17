@@ -14,7 +14,7 @@ const bgAlignXOptions = [
   { value: 'right', label: 'Der' },
 ];
 
-export function BgPanel({ texto, bgStyle, updateBgStyle, resetBgStyle, requestJson, setStatus }) {
+export function BgPanel({ texto, bgStyle, textStyle, updateBgStyle, resetBgStyle, requestJson, setStatus }) {
   const [bgVersion, setBgVersion] = useState(Date.now());
   const [uploading, setUploading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -37,7 +37,12 @@ export function BgPanel({ texto, bgStyle, updateBgStyle, resetBgStyle, requestJs
     }
   }
 
+  const encodedPreviewStyle = encodeURIComponent(JSON.stringify({
+    bg: bgStyle,
+    text: textStyle,
+  }));
   const overlayPreviewUrl = `${OVERLAY_BASE}/overlay/text.html?apiBase=${encodeURIComponent(API_BASE)}&wsBase=${encodeURIComponent(OVERLAY_WS_BASE)}&previewVersion=${bgVersion}`;
+  const forcedPreviewUrl = `${OVERLAY_BASE}/overlay/text.html?apiBase=${encodeURIComponent(API_BASE)}&wsBase=${encodeURIComponent(OVERLAY_WS_BASE)}&previewVersion=${bgVersion}&previewMode=forced&previewText=${encodeURIComponent(texto || '')}&previewStyle=${encodedPreviewStyle}`;
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4">
@@ -53,20 +58,42 @@ export function BgPanel({ texto, bgStyle, updateBgStyle, resetBgStyle, requestJs
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
-        <div className="relative h-64 overflow-hidden">
-          <div className="absolute left-0 top-0 h-[1080px] w-[1920px] origin-top-left scale-[0.17] bg-[radial-gradient(circle_at_top,#1e293b_0%,#020617_72%)]">
-            <iframe
-              key={overlayPreviewUrl}
-              title="Preview del overlay real"
-              src={overlayPreviewUrl}
-              className="h-[1080px] w-[1920px] border-0 bg-transparent"
-            />
-          </div>
-          {!texto.trim() && (
-            <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-slate-700 bg-slate-950/85 px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              El preview real queda vacio hasta que envies texto al zocalo
+        <div className="grid gap-3 p-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Preview real</div>
+            <div className="relative h-64 overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+              <div className="absolute left-0 top-0 h-[1080px] w-[1920px] origin-top-left scale-[0.17] bg-[radial-gradient(circle_at_top,#1e293b_0%,#020617_72%)]">
+                <iframe
+                  key={overlayPreviewUrl}
+                  title="Preview del overlay real"
+                  src={overlayPreviewUrl}
+                  className="h-[1080px] w-[1920px] border-0 bg-transparent"
+                />
+              </div>
+              {!texto.trim() && (
+                <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-slate-700 bg-slate-950/85 px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Muestra exactamente el estado al aire
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Preview forzado</div>
+            <div className="relative h-64 overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+              <div className="absolute left-0 top-0 h-[1080px] w-[1920px] origin-top-left scale-[0.17] bg-[radial-gradient(circle_at_top,#1e293b_0%,#020617_72%)]">
+                <iframe
+                  key={forcedPreviewUrl}
+                  title="Preview forzado del overlay"
+                  src={forcedPreviewUrl}
+                  className="h-[1080px] w-[1920px] border-0 bg-transparent"
+                />
+              </div>
+              <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-sky-700/60 bg-slate-950/85 px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-sky-300">
+                Usa tu texto actual aunque todavia no este enviado
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

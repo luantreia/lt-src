@@ -107,6 +107,8 @@
     const params = new URLSearchParams(window.location.search);
     const apiBase = (params.get('apiBase') || window.location.origin).replace(/\/$/, '');
     const wsBase = (params.get('wsBase') || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`).replace(/\/$/, '');
+    const previewMode = params.get('previewMode') || '';
+    const previewText = params.get('previewText') || '';
     const HTTP_URL = `${apiBase}/state`;
     const WS_URL = wsBase;
 
@@ -144,6 +146,18 @@
       zocaloStyle: defaultStyle,
       zocaloBgVersion: 0,
     };
+
+    function parsePreviewStyle() {
+      const raw = params.get('previewStyle');
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    const previewStyle = parsePreviewStyle();
 
     function refreshBackgroundImage() {
       zocaloBgNode.src = `/overlay/zocalo-bg.png?v=${state.zocaloBgVersion || 0}`;
@@ -210,10 +224,20 @@
     }
 
     function render() {
-      const hasContent = Boolean(state.nombre);
-      const show = state.visible && state.zocaloVisible && hasContent;
-      applyStyle(state.zocaloStyle);
-      textoNode.textContent = state.nombre;
+      const forcedPreview = previewMode === 'forced';
+      const effectiveStyle = forcedPreview
+        ? normalizeStyle({
+            bg: { ...state.zocaloStyle.bg, ...(previewStyle?.bg || {}) },
+            text: { ...state.zocaloStyle.text, ...(previewStyle?.text || {}) },
+          })
+        : state.zocaloStyle;
+      const renderedText = forcedPreview
+        ? (previewText || state.nombre || 'Vista previa del zocalo')
+        : state.nombre;
+      const hasContent = Boolean(renderedText);
+      const show = forcedPreview ? true : (state.visible && state.zocaloVisible && hasContent);
+      applyStyle(effectiveStyle);
+      textoNode.textContent = renderedText;
       lowerThird.classList.toggle('visible', show);
     }
 

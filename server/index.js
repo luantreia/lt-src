@@ -18,6 +18,7 @@ const uploadsDir = path.join(dataDir, 'uploads');
 const overlayDir = path.resolve(__dirname, '../overlay');
 const imageMetadataPath = path.join(dataDir, 'image-metadata.json');
 const textPresetsPath = path.join(dataDir, 'text-presets.json');
+const zocaloStylePath = path.join(dataDir, 'zocalo-style.json');
 const OBS_IMAGE_WIDTH = 1920;
 const OBS_IMAGE_HEIGHT = 1080;
 const IMAGE_MIN_SCALE = 1;
@@ -125,6 +126,66 @@ const sanitizeQuote = (value) => ({
   speaker: String(value?.speaker || ''),
   text: String(value?.text || '')
 });
+
+const zocaloFontOptions = [
+  '"Arial Narrow", "Trebuchet MS", sans-serif',
+  'Arial, Helvetica, sans-serif',
+  '"Trebuchet MS", sans-serif',
+  'Georgia, "Times New Roman", serif',
+  'Tahoma, Geneva, sans-serif',
+  'Verdana, Geneva, sans-serif',
+  'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif'
+];
+
+const normalizeChoice = (value, choices, fallback) => (
+  choices.includes(value) ? value : fallback
+);
+
+const createDefaultZocaloStyle = () => ({
+  bgLeft: 0,
+  bgBottom: 0,
+  bgWidth: 1120,
+  textInsetLeft: 180,
+  textInsetRight: 40,
+  textInsetTop: 36,
+  textInsetBottom: 36,
+  textAlignX: 'left',
+  textAlignY: 'top',
+  fontSize: 42,
+  fontFamily: zocaloFontOptions[0],
+  fontWeight: 900
+});
+
+const normalizeZocaloStyle = (value, fallback = createDefaultZocaloStyle()) => ({
+  bgLeft: clampNumber(value?.bgLeft, 0, OBS_IMAGE_WIDTH, fallback.bgLeft),
+  bgBottom: clampNumber(value?.bgBottom, 0, OBS_IMAGE_HEIGHT, fallback.bgBottom),
+  bgWidth: clampNumber(value?.bgWidth, 200, OBS_IMAGE_WIDTH, fallback.bgWidth),
+  textInsetLeft: clampNumber(value?.textInsetLeft, 0, 1800, fallback.textInsetLeft),
+  textInsetRight: clampNumber(value?.textInsetRight, 0, 1800, fallback.textInsetRight),
+  textInsetTop: clampNumber(value?.textInsetTop, 0, 1000, fallback.textInsetTop),
+  textInsetBottom: clampNumber(value?.textInsetBottom, 0, 1000, fallback.textInsetBottom),
+  textAlignX: normalizeChoice(value?.textAlignX, ['left', 'center', 'right'], fallback.textAlignX),
+  textAlignY: normalizeChoice(value?.textAlignY, ['top', 'center', 'bottom'], fallback.textAlignY),
+  fontSize: clampNumber(value?.fontSize, 12, 180, fallback.fontSize),
+  fontFamily: normalizeChoice(value?.fontFamily, zocaloFontOptions, fallback.fontFamily),
+  fontWeight: clampNumber(value?.fontWeight, 100, 900, fallback.fontWeight)
+});
+
+const readZocaloStyle = () => {
+  if (!fs.existsSync(zocaloStylePath)) {
+    return createDefaultZocaloStyle();
+  }
+
+  try {
+    return normalizeZocaloStyle(JSON.parse(fs.readFileSync(zocaloStylePath, 'utf8')));
+  } catch {
+    return createDefaultZocaloStyle();
+  }
+};
+
+const writeZocaloStyle = (style) => {
+  fs.writeFileSync(zocaloStylePath, JSON.stringify(style, null, 2));
+};
 
 const createDefaultPresetElements = () => ({
   zocalo: {
@@ -346,6 +407,7 @@ const state = {
   images: loadExistingImages(),
   selectedImageId: null,
   imageTransforms: {},
+  zocaloStyle: readZocaloStyle(),
   presets: savedPresets,
   activeTextPreset: null,
   updatedAt: Date.now()
@@ -378,6 +440,7 @@ const serializeState = () => {
 
   return {
     zocalo: state.zocalo,
+    zocaloStyle: state.zocaloStyle,
     title: state.title,
     quote: state.quote,
     visibility: state.visibility,
@@ -631,6 +694,20 @@ app.post('/zocalo', (req, res) => {
   syncState();
 
   res.json({ success: true, state: serializeState() });
+});
+
+app.post('/zocalo-style', (req, res) => {
+  state.zocaloStyle = normalizeZocaloStyle({
+    ...state.zocaloStyle,
+    ...(req.body ?? {})
+  });
+  writeZocaloStyle(state.zocaloStyle);
+  touchState();
+
+  broadcast({ type: 'ZOCALO_STYLE', payload: state.zocaloStyle });
+  syncState();
+
+  res.json({ success: true, zocaloStyle: state.zocaloStyle, state: serializeState() });
 });
 
 app.post('/title', (req, res) => {
